@@ -1,31 +1,56 @@
-import { Calendar } from 'lucide-react'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { getScheduleJobs } from '@/lib/maintenance/queries'
+import { ScheduleBoard } from '../_components/schedule-board'
 
-export default function MaintenanceSchedulePage() {
+export const dynamic = 'force-dynamic'
+
+function getMondayStr(weekParam?: string): string {
+  const base = weekParam ? new Date(weekParam + 'T00:00:00') : new Date()
+  if (isNaN(base.getTime())) return getMondayStr()
+  const day = base.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  base.setDate(base.getDate() + diff)
+  return base.toISOString().slice(0, 10)
+}
+
+export default async function SchedulePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string | string[] }>
+}) {
+  const sp = await searchParams
+  const weekParam = Array.isArray(sp.week) ? sp.week[0] : sp.week
+  const weekStart = getMondayStr(weekParam)
+  const data = await getScheduleJobs(weekStart)
+
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="border-b border-line bg-surface px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft">
-            <Calendar className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-ink">Maintenance Schedule</h1>
-            <p className="text-sm text-ink-muted">Plan and view scheduled maintenance work</p>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink">Schedule</h1>
+          <p className="text-sm text-ink-muted mt-0.5">Maintenance jobs by staff and week</p>
         </div>
+        <Link href="/maintenance/new">
+          <Button size="sm"><Plus className="h-4 w-4 mr-1" />New Job</Button>
+        </Link>
       </div>
 
-      <div className="flex flex-1 items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-muted">
-            <Calendar className="h-8 w-8 text-ink-subtle" />
-          </div>
-          <h2 className="mb-1 text-base font-medium text-ink">Coming soon</h2>
-          <p className="text-sm text-ink-muted">
-            Scheduled inspections, preventive maintenance and calendar view will appear here.
-          </p>
+      {data.error ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          {data.error.includes('relation') || data.error.includes('connect')
+            ? 'Schedule data is unavailable — configure Supabase and run migrations to enable this view.'
+            : `Failed to load schedule: ${data.error}`}
         </div>
-      </div>
+      ) : (
+        <ScheduleBoard
+          weekStart={weekStart}
+          byStaff={data.byStaff}
+          unscheduled={data.unscheduled}
+          staff={data.staff}
+        />
+      )}
     </div>
   )
 }
