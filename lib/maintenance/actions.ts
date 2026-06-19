@@ -24,7 +24,6 @@ function num(formData: FormData, key: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-/** Resolve the signed-in user and their company, or an error. */
 async function currentContext() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -33,10 +32,6 @@ async function currentContext() {
   return { supabase, user, companyId: (profile?.company_id as string | null) ?? null }
 }
 
-/**
- * Create a maintenance job (used by the New Request form via useActionState).
- * Writes an audit log entry and redirects to the new job on success.
- */
 export async function createMaintenanceJob(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { supabase, user, companyId } = await currentContext()
   if (!user || !companyId) {
@@ -47,7 +42,10 @@ export async function createMaintenanceJob(_prev: ActionState, formData: FormDat
   if (!title) return { error: 'A job title is required.' }
 
   const assignedStaffId = str(formData, 'assigned_staff_id')
-  const status: MaintenanceStatus = assignedStaffId ? 'assigned' : 'new'
+  const scheduledDate = str(formData, 'scheduled_date')
+  let status: MaintenanceStatus = 'new'
+  if (assignedStaffId && scheduledDate) status = 'scheduled'
+  else if (assignedStaffId) status = 'assigned'
 
   const payload = {
     company_id: companyId,
@@ -63,7 +61,7 @@ export async function createMaintenanceJob(_prev: ActionState, formData: FormDat
     assigned_staff_id: assignedStaffId,
     reported_by_name: str(formData, 'reported_by_name'),
     due_date: str(formData, 'due_date'),
-    scheduled_date: str(formData, 'scheduled_date'),
+    scheduled_date: scheduledDate,
     preferred_access_window: str(formData, 'preferred_access_window'),
     access_notes: str(formData, 'access_notes'),
     internal_notes: str(formData, 'internal_notes'),
@@ -92,7 +90,6 @@ export async function createMaintenanceJob(_prev: ActionState, formData: FormDat
   redirect(`/maintenance/${data.id}`)
 }
 
-/** Change a job's status (the trigger records the history row). */
 export async function updateJobStatus(jobId: string, status: MaintenanceStatus, note: string): Promise<ActionState> {
   const { supabase, user, companyId } = await currentContext()
   if (!user) return { error: 'Not signed in.' }
@@ -104,7 +101,6 @@ export async function updateJobStatus(jobId: string, status: MaintenanceStatus, 
 
   if (error) return { error: error.message }
 
-  // Attach the operator note to the auto-generated history row, if provided.
   if (note?.trim()) {
     const { data: latest } = await supabase
       .from('maintenance_job_status_history')
@@ -134,7 +130,6 @@ export async function updateJobStatus(jobId: string, status: MaintenanceStatus, 
   return { error: null, ok: true }
 }
 
-/** Add a comment / activity note to a job. */
 export async function addJobComment(jobId: string, comment: string, isInternal: boolean): Promise<ActionState> {
   const { supabase, user } = await currentContext()
   if (!user) return { error: 'Not signed in.' }
@@ -152,7 +147,6 @@ export async function addJobComment(jobId: string, comment: string, isInternal: 
   return { error: null, ok: true }
 }
 
-/** Tick / untick a checklist item. */
 export async function toggleChecklistItem(itemId: string, jobId: string, done: boolean): Promise<ActionState> {
   const { supabase, user } = await currentContext()
   if (!user) return { error: 'Not signed in.' }
@@ -164,5 +158,87 @@ export async function toggleChecklistItem(itemId: string, jobId: string, done: b
   if (error) return { error: error.message }
 
   revalidatePath(`/maintenance/${jobId}`)
+  return { error: null, ok: true }
+}
+
+export async function assignJobStaff(
+  jobId: string,
+  staffId: string | null,
+  scheduledDate: string | null,
+  note: string,
+): Promise<ActionState> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user) return { error: 'Not signed in.' }
+
+  const { data: current } = await supabase
+    .from('maintenance_jobs')
+    .select('status')
+    .eq('id', jobId)
+    .maybeSingle()
+
+  const update: Record<string, unknown> = {
+    assigned_staff_id: staffId,
+    scheduled_date: scheduledDate,
+    updated_by: user.id,
+  }
+
+  if (staffId && current?.status && ['new', 'triage'].includes(current.status)) {
+    update.status = scheduledDate ? 'scheduled' : 'assigned'
+  } else if (!staffId && current?.status === 'assigned') {
+    update.status = 'new'
+  }
+
+  const { error } = await supabase.from('maintenance_jobs').update(update).eq('id', jobId)
+  if (error) return { error: error.message }
+
+  if (companyId) {
+    await supabase.from('audit_logs').insert({
+      company_id: companyId,
+      user_id: user.id,
+      action: 'updated',
+      entity_type: 'maintenance_job',
+      entity_id: jobId,
+      description: staffId
+        ? `Assigned job${scheduledDate ? `, scheduled ${scheduledDate}` : ''}`
+        : 'Unassigned job',
+    })
+  }
+
+  revalidatePath('/maintenance/schedule')
+  revalidatePath(`/maintenance/${jobId}`)
+  revalidatePath('/maintenance')
+  return { error: null, ok: true }
+}
+
+export async function completeJob(jobId: string, completionNotes: string): Promise<ActionState> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user) return { error: 'Not signed in.' }
+
+  const { error } = await supabase
+    .from('maintenance_jobs')
+    .update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      completion_notes: completionNotes.trim() || null,
+      updated_by: user.id,
+    })
+    .eq('id', jobId)
+
+  if (error) return { error: error.message }
+
+  if (companyId) {
+    await supabase.from('audit_logs').insert({
+      company_id: companyId,
+      user_id: user.id,
+      action: 'status_changed',
+      entity_type: 'maintenance_job',
+      entity_id: jobId,
+      description: 'Marked as completed',
+    })
+  }
+
+  revalidatePath(`/maintenance/${jobId}`)
+  revalidatePath('/maintenance')
+  revalidatePath('/maintenance/my-jobs')
   return { error: null, ok: true }
 }

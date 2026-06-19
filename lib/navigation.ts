@@ -15,6 +15,7 @@ import {
   FileText,
   CreditCard,
   Calendar,
+  ListChecks,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -64,6 +65,7 @@ export const navGroups: NavGroup[] = [
     icon: Wrench,
     items: [
       { name: 'Work Orders', href: '/maintenance', icon: Wrench, badge: 6, exact: true },
+      { name: 'My Jobs', href: '/maintenance/my-jobs', icon: ListChecks },
       { name: 'Contractors', href: '/maintenance/contractors', icon: Users },
       { name: 'Schedule', href: '/maintenance/schedule', icon: Calendar },
     ],

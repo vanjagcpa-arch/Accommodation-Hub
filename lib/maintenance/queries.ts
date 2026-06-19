@@ -7,6 +7,7 @@ import type {
   MaintenanceStatusHistory,
   MaintenanceChecklistItem,
   MaintenanceCost,
+  MaintenanceStaffProfile,
 } from '@/types'
 import { OPEN_STATUSES } from './constants'
 
@@ -33,11 +34,6 @@ export interface JobListResult {
   error: string | null
 }
 
-/**
- * Fetch maintenance jobs for the All Jobs view, applying URL-driven filters.
- * Returns an error string (rather than throwing) so the page can render a
- * helpful empty state when Supabase is not yet configured/migrated.
- */
 export async function getMaintenanceJobs(filters: MaintenanceJobFilters = {}): Promise<JobListResult> {
   try {
     const supabase = await createClient()
@@ -130,7 +126,6 @@ export interface MaintenanceStats {
   unassigned: number
 }
 
-/** Header KPIs for the All Jobs view, using count queries (accurate at scale). */
 export async function getMaintenanceStats(): Promise<MaintenanceStats> {
   const zero: MaintenanceStats = { open: 0, urgent: 0, overdue: 0, dueThisWeek: 0, unassigned: 0 }
   try {
@@ -138,7 +133,11 @@ export async function getMaintenanceStats(): Promise<MaintenanceStats> {
     const today = new Date().toISOString().slice(0, 10)
     const week = new Date(); week.setDate(week.getDate() + 7)
     const weekStr = week.toISOString().slice(0, 10)
-    const base = () => supabase.from('maintenance_jobs').select('id', { count: 'exact', head: true }).eq('is_active', true).in('status', OPEN_STATUSES)
+    const base = () =>
+      supabase.from('maintenance_jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_active', true)
+        .in('status', OPEN_STATUSES)
 
     const [open, urgent, overdue, dueWeek, unassigned] = await Promise.all([
       base(),
@@ -160,7 +159,6 @@ export async function getMaintenanceStats(): Promise<MaintenanceStats> {
   }
 }
 
-/** Dropdown options for the New Request form and filter bar. */
 export async function getMaintenanceFormOptions(): Promise<MaintenanceFormOptions & { error: string | null }> {
   const empty: MaintenanceFormOptions = { buildings: [], properties: [], tenants: [], categories: [], staff: [] }
   try {
@@ -182,5 +180,162 @@ export async function getMaintenanceFormOptions(): Promise<MaintenanceFormOption
     }
   } catch (err) {
     return { ...empty, error: err instanceof Error ? err.message : 'Failed to load options' }
+  }
+}
+
+// ── Phase 2 ────────────────────────────────────────────────────────────────
+
+export interface ScheduleStaff {
+  id: string
+  full_name: string
+  color: string | null
+  trade: string | null
+}
+
+export interface ScheduleJobsResult {
+  byStaff: { staff: ScheduleStaff; jobs: MaintenanceJob[] }[]
+  unscheduled: MaintenanceJob[]
+  staff: ScheduleStaff[]
+  error: string | null
+}
+
+export async function getScheduleJobs(weekStart: string): Promise<ScheduleJobsResult> {
+  const empty: ScheduleJobsResult = { byStaff: [], unscheduled: [], staff: [], error: null }
+  try {
+    const supabase = await createClient()
+    const end = new Date(weekStart + 'T00:00:00')
+    end.setDate(end.getDate() + 6)
+    const endStr = end.toISOString().slice(0, 10)
+
+    const [scheduled, unscheduled, staffRes] = await Promise.all([
+      supabase
+        .from('maintenance_jobs')
+        .select(JOB_LIST_SELECT)
+        .eq('is_active', true)
+        .in('status', OPEN_STATUSES)
+        .not('assigned_staff_id', 'is', null)
+        .gte('scheduled_date', weekStart)
+        .lte('scheduled_date', endStr),
+      supabase
+        .from('maintenance_jobs')
+        .select(JOB_LIST_SELECT)
+        .eq('is_active', true)
+        .in('status', OPEN_STATUSES)
+        .is('scheduled_date', null)
+        .order('priority')
+        .limit(50),
+      supabase
+        .from('maintenance_staff_profiles')
+        .select('id, full_name, color, trade')
+        .eq('is_active', true)
+        .order('full_name'),
+    ])
+
+    if (scheduled.error) return { ...empty, error: scheduled.error.message }
+    const jobs = (scheduled.data as unknown as MaintenanceJob[]) ?? []
+    const staffList = (staffRes.data ?? []) as ScheduleStaff[]
+
+    return {
+      byStaff: staffList.map(s => ({ staff: s, jobs: jobs.filter(j => j.assigned_staff_id === s.id) })),
+      unscheduled: (unscheduled.data as unknown as MaintenanceJob[]) ?? [],
+      staff: staffList,
+      error: null,
+    }
+  } catch (err) {
+    return { ...empty, error: err instanceof Error ? err.message : 'Failed to load schedule' }
+  }
+}
+
+export interface MyJobsResult {
+  overdue: MaintenanceJob[]
+  today: MaintenanceJob[]
+  upcoming: MaintenanceJob[]
+  staffProfile: Pick<MaintenanceStaffProfile, 'id' | 'full_name' | 'trade'> | null
+  error: string | null
+}
+
+export async function getMyJobs(staffId: string): Promise<MyJobsResult> {
+  const empty: MyJobsResult = { overdue: [], today: [], upcoming: [], staffProfile: null, error: null }
+  try {
+    const supabase = await createClient()
+    const todayStr = new Date().toISOString().slice(0, 10)
+
+    const [profileRes, jobsRes] = await Promise.all([
+      supabase
+        .from('maintenance_staff_profiles')
+        .select('id, full_name, trade')
+        .eq('id', staffId)
+        .maybeSingle(),
+      supabase
+        .from('maintenance_jobs')
+        .select(JOB_LIST_SELECT)
+        .eq('is_active', true)
+        .eq('assigned_staff_id', staffId)
+        .in('status', OPEN_STATUSES)
+        .order('scheduled_date', { ascending: true, nullsFirst: false }),
+    ])
+
+    if (jobsRes.error) return { ...empty, error: jobsRes.error.message }
+    const jobs = (jobsRes.data as unknown as MaintenanceJob[]) ?? []
+
+    return {
+      overdue: jobs.filter(j => j.scheduled_date && j.scheduled_date < todayStr),
+      today: jobs.filter(j => j.scheduled_date === todayStr),
+      upcoming: jobs.filter(j => !j.scheduled_date || j.scheduled_date > todayStr),
+      staffProfile: profileRes.data as Pick<MaintenanceStaffProfile, 'id' | 'full_name' | 'trade'> | null,
+      error: null,
+    }
+  } catch (err) {
+    return { ...empty, error: err instanceof Error ? err.message : 'Failed to load my jobs' }
+  }
+}
+
+export async function getStaffList(): Promise<ScheduleStaff[]> {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('maintenance_staff_profiles')
+      .select('id, full_name, color, trade')
+      .eq('is_active', true)
+      .order('full_name')
+    return (data ?? []) as ScheduleStaff[]
+  } catch {
+    return []
+  }
+}
+
+export interface PropertyMaintenanceResult {
+  open: MaintenanceJob[]
+  history: MaintenanceJob[]
+  error: string | null
+}
+
+export async function getPropertyMaintenanceHistory(propertyId: string): Promise<PropertyMaintenanceResult> {
+  const empty: PropertyMaintenanceResult = { open: [], history: [], error: null }
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('maintenance_jobs')
+      .select(`
+        *,
+        building:buildings(id, name),
+        property:properties(id, unit_number),
+        category:maintenance_categories(id, name, color),
+        assigned_staff:maintenance_staff_profiles(id, full_name, color)
+      `)
+      .eq('property_id', propertyId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (error) return { ...empty, error: error.message }
+    const jobs = (data as unknown as MaintenanceJob[]) ?? []
+    return {
+      open: jobs.filter(j => OPEN_STATUSES.includes(j.status)),
+      history: jobs.filter(j => !OPEN_STATUSES.includes(j.status)),
+      error: null,
+    }
+  } catch (err) {
+    return { ...empty, error: err instanceof Error ? err.message : 'Failed to load property maintenance' }
   }
 }
