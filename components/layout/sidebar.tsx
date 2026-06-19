@@ -45,18 +45,18 @@ export function Sidebar() {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
+                      'group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors',
                       isActive
                         ? 'bg-primary-soft text-primary-active'
-                        : 'text-ink-muted hover:bg-surface-muted hover:text-ink'
+                        : 'text-[#374151] hover:bg-surface-muted hover:text-ink'
                     )}
                   >
                     <item.icon
                       className={cn(
-                        'h-[18px] w-[18px] shrink-0',
+                        'h-[17px] w-[17px] shrink-0',
                         isActive
                           ? 'text-primary'
-                          : 'text-ink-subtle group-hover:text-ink-muted'
+                          : 'text-[#6B7280] group-hover:text-[#374151]'
                       )}
                     />
                     <span className="flex-1 truncate">{item.name}</span>
