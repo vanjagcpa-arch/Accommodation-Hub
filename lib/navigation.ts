@@ -11,6 +11,10 @@ import {
   BarChart3,
   Link2,
   Settings,
+  Gauge,
+  FileText,
+  CreditCard,
+  Calendar,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -19,16 +23,19 @@ export interface NavItem {
   href: string
   icon: LucideIcon
   badge?: string | number
+  exact?: boolean
 }
 
 export interface NavGroup {
   label: string
+  icon: LucideIcon
   items: NavItem[]
 }
 
 export const navGroups: NavGroup[] = [
   {
     label: 'Overview',
+    icon: LayoutDashboard,
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Reporting', href: '/reporting', icon: BarChart3 },
@@ -36,6 +43,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: 'Portfolio',
+    icon: Building2,
     items: [
       { name: 'Buildings', href: '/buildings', icon: Hotel },
       { name: 'Properties', href: '/properties', icon: Building2 },
@@ -44,6 +52,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: 'Leasing',
+    icon: ClipboardList,
     items: [
       { name: 'Applications', href: '/applications', icon: ClipboardList, badge: 4 },
       { name: 'Tenants', href: '/tenants', icon: User },
@@ -51,14 +60,28 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Operations',
+    label: 'Maintenance',
+    icon: Wrench,
     items: [
-      { name: 'Maintenance', href: '/maintenance', icon: Wrench, badge: 6 },
-      { name: 'Electricity', href: '/electricity', icon: Zap },
+      { name: 'Work Orders', href: '/maintenance', icon: Wrench, badge: 6, exact: true },
+      { name: 'Contractors', href: '/maintenance/contractors', icon: Users },
+      { name: 'Schedule', href: '/maintenance/schedule', icon: Calendar },
+    ],
+  },
+  {
+    label: 'Electricity',
+    icon: Zap,
+    items: [
+      { name: 'Overview', href: '/electricity', icon: Zap, exact: true },
+      { name: 'Tenants', href: '/electricity/tenants', icon: User },
+      { name: 'Metering', href: '/electricity/metering', icon: Gauge },
+      { name: 'Invoices', href: '/electricity/invoices', icon: FileText },
+      { name: 'Payments', href: '/electricity/payments', icon: CreditCard },
     ],
   },
   {
     label: 'System',
+    icon: Settings,
     items: [
       { name: 'Integrations', href: '/integrations', icon: Link2 },
       { name: 'Settings', href: '/settings', icon: Settings },
@@ -66,6 +89,12 @@ export const navGroups: NavGroup[] = [
   },
 ]
 
-export function isNavItemActive(pathname: string, href: string): boolean {
-  return pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+export function isNavItemActive(pathname: string, href: string, exact?: boolean): boolean {
+  if (pathname === href) return true
+  if (exact) return false
+  return pathname.startsWith(href + '/')
+}
+
+export function isGroupActive(pathname: string, group: NavGroup): boolean {
+  return group.items.some(item => isNavItemActive(pathname, item.href, item.exact))
 }
