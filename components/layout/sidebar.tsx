@@ -2,12 +2,30 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Hotel, ChevronsUpDown, LogOut, Sparkles } from 'lucide-react'
-import { navGroups, isNavItemActive } from '@/lib/navigation'
+import { Hotel, ChevronsUpDown, LogOut, Sparkles, ChevronRight } from 'lucide-react'
+import { navGroups, isNavItemActive, isGroupActive } from '@/lib/navigation'
 
 export function Sidebar() {
   const pathname = usePathname()
+
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const initial = new Set<string>()
+    navGroups.forEach(group => {
+      if (isGroupActive(pathname, group)) initial.add(group.label)
+    })
+    return initial
+  })
+
+  function toggleGroup(label: string) {
+    setOpenGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }
 
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-line bg-surface">
@@ -30,54 +48,83 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 pb-3">
-        {navGroups.map((group) => (
-          <div key={group.label} className="mb-4">
-            <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-              {group.label}
-            </p>
-            <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const isActive = isNavItemActive(pathname, item.href)
+      <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-3">
+        <div className="space-y-0.5">
+          {navGroups.map((group) => {
+            const isOpen = openGroups.has(group.label)
+            const groupActive = isGroupActive(pathname, group)
 
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
+            return (
+              <div key={group.label}>
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className={cn(
+                    'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors',
+                    groupActive && !isOpen
+                      ? 'bg-primary-soft text-primary-active'
+                      : 'text-[#374151] hover:bg-surface-muted hover:text-ink'
+                  )}
+                >
+                  <group.icon
                     className={cn(
-                      'group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors',
-                      isActive
-                        ? 'bg-primary-soft text-primary-active'
-                        : 'text-[#374151] hover:bg-surface-muted hover:text-ink'
+                      'h-[17px] w-[17px] shrink-0 transition-colors',
+                      groupActive ? 'text-primary' : 'text-[#6B7280]'
                     )}
-                  >
-                    <item.icon
-                      className={cn(
-                        'h-[17px] w-[17px] shrink-0',
-                        isActive
-                          ? 'text-primary'
-                          : 'text-[#6B7280] group-hover:text-[#374151]'
-                      )}
-                    />
-                    <span className="flex-1 truncate">{item.name}</span>
-                    {item.badge !== undefined && (
-                      <span
-                        className={cn(
-                          'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold',
-                          isActive
-                            ? 'bg-primary text-white'
-                            : 'bg-surface-muted text-ink-subtle group-hover:bg-line'
-                        )}
-                      >
-                        {item.badge}
-                      </span>
+                  />
+                  <span className="flex-1 truncate text-left">{group.label}</span>
+                  <ChevronRight
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0 text-ink-faint transition-transform duration-200',
+                      isOpen && 'rotate-90'
                     )}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        ))}
+                  />
+                </button>
+
+                {isOpen && (
+                  <div className="ml-5 mt-0.5 border-l border-line pl-2 pb-1 space-y-0.5">
+                    {group.items.map((item) => {
+                      const itemActive = isNavItemActive(pathname, item.href, item.exact)
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className={cn(
+                            'group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+                            itemActive
+                              ? 'bg-primary-soft text-primary-active'
+                              : 'text-[#374151] hover:bg-surface-muted hover:text-ink'
+                          )}
+                        >
+                          <item.icon
+                            className={cn(
+                              'h-[15px] w-[15px] shrink-0',
+                              itemActive
+                                ? 'text-primary'
+                                : 'text-[#6B7280] group-hover:text-[#374151]'
+                            )}
+                          />
+                          <span className="flex-1 truncate">{item.name}</span>
+                          {item.badge !== undefined && (
+                            <span
+                              className={cn(
+                                'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold',
+                                itemActive
+                                  ? 'bg-primary text-white'
+                                  : 'bg-surface-muted text-ink-subtle group-hover:bg-line'
+                              )}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </nav>
 
       {/* Setup / promo card */}
