@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils'
 import { ChevronsUpDown } from 'lucide-react'
 
 interface TableProps {
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
 }
 
@@ -65,9 +65,9 @@ export function TableHead({
   )
 }
 
-export function TableCell({ children, className }: TableProps) {
+export function TableCell({ children, className, colSpan }: TableProps & { colSpan?: number }) {
   return (
-    <td className={cn('px-4 py-3 text-ink-muted whitespace-nowrap align-middle', className)}>
+    <td colSpan={colSpan} className={cn('px-4 py-3 text-ink-muted whitespace-nowrap align-middle', className)}>
       {children}
     </td>
   )

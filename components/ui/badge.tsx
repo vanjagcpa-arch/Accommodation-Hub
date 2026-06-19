@@ -76,11 +76,15 @@ export function MaintenanceStatusBadge({ status }: { status: MaintenanceStatus }
     assigned: { label: 'Assigned', variant: 'default' },
     scheduled: { label: 'Scheduled', variant: 'default' },
     in_progress: { label: 'In Progress', variant: 'warning' },
-    waiting_parts: { label: 'Waiting Parts', variant: 'warning' },
-    waiting_approval: { label: 'Waiting Approval', variant: 'warning' },
+    waiting_tenant: { label: 'Waiting on Tenant', variant: 'warning' },
+    waiting_access: { label: 'Waiting on Access', variant: 'warning' },
+    waiting_parts: { label: 'Waiting on Parts', variant: 'warning' },
+    waiting_quote: { label: 'Waiting on Quote', variant: 'warning' },
+    waiting_approval: { label: 'Waiting on Approval', variant: 'warning' },
     completed: { label: 'Completed', variant: 'success' },
     closed: { label: 'Closed', variant: 'gray' },
     cancelled: { label: 'Cancelled', variant: 'gray' },
+    duplicate: { label: 'Duplicate', variant: 'gray' },
   }
   const { label, variant } = config[status] ?? { label: status, variant: 'default' as const }
   return <Badge variant={variant} dot>{label}</Badge>
