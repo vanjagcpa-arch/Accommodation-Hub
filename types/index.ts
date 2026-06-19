@@ -24,11 +24,19 @@ export type MaintenanceStatus =
   | 'assigned'
   | 'scheduled'
   | 'in_progress'
+  | 'waiting_tenant'
+  | 'waiting_access'
   | 'waiting_parts'
+  | 'waiting_quote'
   | 'waiting_approval'
   | 'completed'
   | 'closed'
   | 'cancelled'
+  | 'duplicate'
+
+export type MaintenanceCostType = 'labour' | 'callout' | 'parts' | 'contractor' | 'other'
+
+export type MaintenanceJobSource = 'manager' | 'tenant' | 'recurring' | 'inspection' | 'agent'
 
 export type ApplicationStatus =
   | 'new'
@@ -283,20 +291,37 @@ export interface MaintenanceJob {
   building_id: string | null
   property_id: string | null
   tenant_id: string | null
+  occupancy_id: string | null
+  job_number: string | null
   title: string
   description: string | null
   issue_type: string | null
+  category_id: string | null
   priority: MaintenancePriority
   status: MaintenanceStatus
+  source: MaintenanceJobSource | string | null
   assigned_to: string | null
+  assigned_staff_id: string | null
+  assigned_manager_id: string | null
+  external_agent_id: string | null
+  reported_by_id: string | null
+  reported_by_name: string | null
   due_date: string | null
   scheduled_date: string | null
   completed_at: string | null
+  closed_at: string | null
+  preferred_access_window: string | null
   access_notes: string | null
+  tenant_contact_visible: boolean
   internal_notes: string | null
+  external_notes: string | null
   completion_notes: string | null
+  estimated_cost: number | null
+  actual_cost: number | null
+  invoice_reference: string | null
   recurring_rule_id: string | null
   reapit_external_id: string | null
+  is_active: boolean
   created_at: string
   updated_at: string
   created_by: string | null
@@ -305,9 +330,16 @@ export interface MaintenanceJob {
   building?: Building | null
   property?: Property | null
   tenant?: Tenant | null
+  category?: MaintenanceCategory | null
   assignee?: Profile | null
+  assigned_staff?: MaintenanceStaffProfile | null
+  assigned_manager?: Profile | null
   photos?: MaintenancePhoto[]
   comments?: MaintenanceComment[]
+  status_history?: MaintenanceStatusHistory[]
+  checklist_items?: MaintenanceChecklistItem[]
+  materials?: MaintenanceMaterial[]
+  costs?: MaintenanceCost[]
 }
 
 export interface MaintenancePhoto {
@@ -423,4 +455,197 @@ export interface DashboardStats {
   open_maintenance_jobs: number
   pending_applications: number
   electricity_pending: number
+}
+
+// ── Maintenance module entities ─────────────────────────────────
+export interface MaintenanceCategory {
+  id: string
+  company_id: string
+  name: string
+  slug: string
+  description: string | null
+  color: string | null
+  default_priority: MaintenancePriority
+  default_sla_hours: number | null
+  sort_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface MaintenancePriorityConfig {
+  id: string
+  company_id: string
+  key: MaintenancePriority
+  label: string
+  color: string | null
+  sla_hours: number | null
+  sort_order: number
+  is_active: boolean
+}
+
+export interface MaintenanceStaffProfile {
+  id: string
+  company_id: string
+  profile_id: string | null
+  full_name: string
+  email: string | null
+  phone: string | null
+  trade: string | null
+  skills: string[] | null
+  is_internal: boolean
+  color: string | null
+  max_jobs_per_day: number | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  // Joined / computed
+  open_jobs?: number
+}
+
+export interface MaintenanceStatusHistory {
+  id: string
+  job_id: string
+  from_status: MaintenanceStatus | null
+  to_status: MaintenanceStatus
+  note: string | null
+  changed_by: string | null
+  created_at: string
+  // Joined
+  changed_by_profile?: Profile | null
+}
+
+export interface MaintenanceAssignment {
+  id: string
+  job_id: string
+  staff_id: string | null
+  assigned_by: string | null
+  scheduled_date: string | null
+  unassigned_at: string | null
+  note: string | null
+  created_at: string
+  // Joined
+  staff?: MaintenanceStaffProfile | null
+}
+
+export interface MaintenanceChecklistItem {
+  id: string
+  job_id: string
+  label: string
+  is_done: boolean
+  requires_photo: boolean
+  done_by: string | null
+  done_at: string | null
+  sort_order: number
+  created_at: string
+}
+
+export interface MaintenanceChecklistTemplate {
+  id: string
+  company_id: string
+  category_id: string | null
+  name: string
+  description: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  items?: MaintenanceChecklistTemplateItem[]
+}
+
+export interface MaintenanceChecklistTemplateItem {
+  id: string
+  template_id: string
+  label: string
+  requires_photo: boolean
+  sort_order: number
+}
+
+export interface MaintenanceMaterial {
+  id: string
+  job_id: string
+  description: string
+  quantity: number
+  unit_cost: number
+  total_cost: number
+  supplier: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface MaintenanceCost {
+  id: string
+  job_id: string
+  cost_type: MaintenanceCostType | string
+  description: string | null
+  amount: number
+  is_billable: boolean
+  invoice_reference: string | null
+  incurred_on: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface MaintenanceAttachment {
+  id: string
+  job_id: string
+  storage_path: string
+  file_name: string | null
+  content_type: string | null
+  file_size: number | null
+  attachment_type: string | null
+  uploaded_by: string | null
+  created_at: string
+}
+
+export interface MaintenanceNotification {
+  id: string
+  company_id: string
+  recipient_id: string | null
+  job_id: string | null
+  type: string
+  title: string
+  body: string | null
+  is_read: boolean
+  read_at: string | null
+  created_at: string
+}
+
+export interface RecurringMaintenanceOccurrence {
+  id: string
+  rule_id: string
+  job_id: string | null
+  due_date: string
+  generated_at: string
+  status: string
+}
+
+// Filters for the All Jobs view (typically sourced from URL searchParams)
+export interface MaintenanceJobFilters {
+  q?: string
+  building?: string
+  status?: string
+  priority?: string
+  category?: string
+  staff?: string
+  due?: 'overdue' | 'today' | 'week' | string
+  tab?: string
+}
+
+// Options used to populate the New Request / filter dropdowns
+export interface MaintenanceFormOptions {
+  buildings: Pick<Building, 'id' | 'name'>[]
+  properties: Pick<Property, 'id' | 'unit_number' | 'building_id'>[]
+  tenants: Pick<Tenant, 'id' | 'first_name' | 'last_name'>[]
+  categories: Pick<MaintenanceCategory, 'id' | 'name' | 'default_priority'>[]
+  staff: Pick<MaintenanceStaffProfile, 'id' | 'full_name' | 'trade'>[]
+}
+
+export interface MaintenanceDashboardStats {
+  open_jobs: number
+  urgent_jobs: number
+  overdue_jobs: number
+  due_this_week: number
+  completed_this_month: number
+  avg_days_to_complete: number | null
 }
