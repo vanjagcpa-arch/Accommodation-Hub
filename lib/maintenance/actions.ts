@@ -242,3 +242,164 @@ export async function completeJob(jobId: string, completionNotes: string): Promi
   revalidatePath('/maintenance/my-jobs')
   return { error: null, ok: true }
 }
+
+// ── Phase 3 ────────────────────────────────────────────────────────────────
+
+export async function createContractor(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user || !companyId) return { error: 'Not signed in to a workspace.' }
+
+  const fullName = str(formData, 'full_name')
+  if (!fullName) return { error: 'Name is required.' }
+
+  const { error } = await supabase.from('maintenance_staff_profiles').insert({
+    company_id: companyId,
+    full_name: fullName,
+    email: str(formData, 'email'),
+    phone: str(formData, 'phone'),
+    trade: str(formData, 'trade'),
+    is_internal: formData.get('is_internal') !== 'false',
+    color: str(formData, 'color') ?? '#3b82f6',
+    is_active: true,
+    created_by: user.id,
+  })
+
+  if (error) return { error: error.message }
+
+  await supabase.from('audit_logs').insert({
+    company_id: companyId,
+    user_id: user.id,
+    action: 'created',
+    entity_type: 'maintenance_staff_profile',
+    entity_id: null,
+    description: `Added staff/contractor: ${fullName}`,
+  })
+
+  revalidatePath('/maintenance/contractors')
+  return { error: null, ok: true }
+}
+
+export async function toggleStaffActive(staffId: string, isActive: boolean): Promise<ActionState> {
+  const { supabase, user } = await currentContext()
+  if (!user) return { error: 'Not signed in.' }
+
+  const { error } = await supabase
+    .from('maintenance_staff_profiles')
+    .update({ is_active: isActive })
+    .eq('id', staffId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/maintenance/contractors')
+  return { error: null, ok: true }
+}
+
+export async function createRecurringRule(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user || !companyId) return { error: 'Not signed in to a workspace.' }
+
+  const title = str(formData, 'title')
+  if (!title) return { error: 'Title is required.' }
+
+  const { error } = await supabase.from('recurring_maintenance_rules').insert({
+    company_id: companyId,
+    title,
+    description: str(formData, 'description'),
+    building_id: str(formData, 'building_id'),
+    property_id: str(formData, 'property_id'),
+    frequency: str(formData, 'frequency') ?? 'monthly',
+    default_priority: str(formData, 'default_priority') ?? 'medium',
+    next_due_date: str(formData, 'next_due_date'),
+    auto_create_job: formData.get('auto_create_job') === 'on',
+    is_active: true,
+    created_by: user.id,
+  })
+
+  if (error) return { error: error.message }
+  revalidatePath('/maintenance/recurring')
+  return { error: null, ok: true }
+}
+
+export async function toggleRecurringRule(ruleId: string, isActive: boolean): Promise<ActionState> {
+  const { supabase, user } = await currentContext()
+  if (!user) return { error: 'Not signed in.' }
+
+  const { error } = await supabase
+    .from('recurring_maintenance_rules')
+    .update({ is_active: isActive })
+    .eq('id', ruleId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/maintenance/recurring')
+  return { error: null, ok: true }
+}
+
+function computeNextDue(currentDue: string | null, frequency: string): string {
+  const FREQ_DAYS: Record<string, number> = {
+    daily: 1, weekly: 7, fortnightly: 14,
+    monthly: 30, quarterly: 91, biannual: 182, annual: 365,
+  }
+  const base = currentDue ? new Date(currentDue + 'T00:00:00') : new Date()
+  base.setDate(base.getDate() + (FREQ_DAYS[frequency] ?? 30))
+  return base.toISOString().slice(0, 10)
+}
+
+export async function generateJobFromRule(ruleId: string): Promise<ActionState> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user || !companyId) return { error: 'Not signed in.' }
+
+  const { data: rule, error: ruleErr } = await supabase
+    .from('recurring_maintenance_rules')
+    .select('*')
+    .eq('id', ruleId)
+    .maybeSingle()
+
+  if (ruleErr) return { error: ruleErr.message }
+  if (!rule) return { error: 'Rule not found.' }
+
+  const { data: job, error: jobErr } = await supabase
+    .from('maintenance_jobs')
+    .insert({
+      company_id: companyId,
+      title: rule.title,
+      description: rule.description,
+      building_id: rule.building_id,
+      property_id: rule.property_id,
+      priority: rule.default_priority ?? 'medium',
+      status: 'new',
+      source: 'recurring',
+      recurring_rule_id: ruleId,
+      due_date: rule.next_due_date,
+      is_active: true,
+      created_by: user.id,
+    })
+    .select('id')
+    .single()
+
+  if (jobErr) return { error: jobErr.message }
+
+  const nextDue = computeNextDue(rule.next_due_date as string | null, rule.frequency as string)
+
+  await Promise.all([
+    supabase.from('recurring_maintenance_occurrences').insert({
+      rule_id: ruleId,
+      job_id: job.id,
+      due_date: (rule.next_due_date as string | null) ?? new Date().toISOString().slice(0, 10),
+    }),
+    supabase.from('recurring_maintenance_rules').update({
+      last_generated_at: new Date().toISOString(),
+      next_due_date: nextDue,
+    }).eq('id', ruleId),
+    supabase.from('audit_logs').insert({
+      company_id: companyId,
+      user_id: user.id,
+      action: 'created',
+      entity_type: 'maintenance_job',
+      entity_id: job.id,
+      description: `Generated from recurring rule: ${rule.title}`,
+    }),
+  ])
+
+  revalidatePath('/maintenance/recurring')
+  revalidatePath('/maintenance')
+  redirect(`/maintenance/${job.id}`)
+}

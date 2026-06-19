@@ -8,6 +8,7 @@ import type {
   MaintenanceChecklistItem,
   MaintenanceCost,
   MaintenanceStaffProfile,
+  MaintenanceStatus,
 } from '@/types'
 import { OPEN_STATUSES } from './constants'
 
@@ -337,5 +338,174 @@ export async function getPropertyMaintenanceHistory(propertyId: string): Promise
     }
   } catch (err) {
     return { ...empty, error: err instanceof Error ? err.message : 'Failed to load property maintenance' }
+  }
+}
+
+// ── Phase 3 ────────────────────────────────────────────────────────────────
+
+export interface ContractorRow {
+  id: string
+  full_name: string
+  email: string | null
+  phone: string | null
+  trade: string | null
+  is_internal: boolean
+  color: string | null
+  is_active: boolean
+  open_jobs: number
+}
+
+export async function getContractors(): Promise<{ contractors: ContractorRow[]; error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const [staffRes, jobCountRes] = await Promise.all([
+      supabase
+        .from('maintenance_staff_profiles')
+        .select('id, full_name, email, phone, trade, is_internal, color, is_active')
+        .order('is_internal', { ascending: false })
+        .order('full_name'),
+      supabase
+        .from('maintenance_jobs')
+        .select('assigned_staff_id')
+        .eq('is_active', true)
+        .in('status', OPEN_STATUSES)
+        .not('assigned_staff_id', 'is', null),
+    ])
+    if (staffRes.error) return { contractors: [], error: staffRes.error.message }
+
+    const countMap: Record<string, number> = {}
+    for (const j of (jobCountRes.data ?? [])) {
+      const sid = j.assigned_staff_id as string
+      countMap[sid] = (countMap[sid] ?? 0) + 1
+    }
+
+    const contractors: ContractorRow[] = (staffRes.data ?? []).map(s => ({
+      ...s,
+      open_jobs: countMap[s.id] ?? 0,
+    }))
+    return { contractors, error: null }
+  } catch (err) {
+    return { contractors: [], error: err instanceof Error ? err.message : 'Failed to load contractors' }
+  }
+}
+
+export interface RecurringRuleRow {
+  id: string
+  title: string
+  description: string | null
+  frequency: string
+  next_due_date: string | null
+  default_priority: string
+  auto_create_job: boolean
+  last_generated_at: string | null
+  is_active: boolean
+  created_at: string
+  building: { id: string; name: string } | null
+  property: { id: string; unit_number: string } | null
+  default_staff: { id: string; full_name: string } | null
+}
+
+export async function getRecurringRules(): Promise<{ rules: RecurringRuleRow[]; error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('recurring_maintenance_rules')
+      .select(`
+        id, title, description, frequency, next_due_date, default_priority,
+        auto_create_job, last_generated_at, is_active, created_at,
+        building:buildings(id, name),
+        property:properties(id, unit_number),
+        default_staff:maintenance_staff_profiles(id, full_name)
+      `)
+      .order('next_due_date', { ascending: true, nullsFirst: false })
+    if (error) return { rules: [], error: error.message }
+    return { rules: (data as unknown as RecurringRuleRow[]) ?? [], error: null }
+  } catch (err) {
+    return { rules: [], error: err instanceof Error ? err.message : 'Failed to load recurring rules' }
+  }
+}
+
+export interface MaintenanceAnalytics {
+  byStatus: { status: string; count: number }[]
+  byPriority: { priority: string; count: number }[]
+  byBuilding: { building: string; count: number }[]
+  byCategory: { category: string; count: number }[]
+  byStaff: { staff: string; open_jobs: number }[]
+  completedThisMonth: number
+  avgDaysToComplete: number | null
+  error: string | null
+}
+
+export async function getMaintenanceAnalytics(): Promise<MaintenanceAnalytics> {
+  const empty: MaintenanceAnalytics = {
+    byStatus: [], byPriority: [], byBuilding: [], byCategory: [], byStaff: [],
+    completedThisMonth: 0, avgDaysToComplete: null, error: null,
+  }
+  try {
+    const supabase = await createClient()
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+
+    const [jobsRes, completedRes] = await Promise.all([
+      supabase
+        .from('maintenance_jobs')
+        .select('status, priority, building:buildings(name), category:maintenance_categories(name), assigned_staff:maintenance_staff_profiles(full_name)')
+        .eq('is_active', true)
+        .limit(2000),
+      supabase
+        .from('maintenance_jobs')
+        .select('completed_at, created_at')
+        .eq('is_active', true)
+        .eq('status', 'completed')
+        .gte('completed_at', monthStart),
+    ])
+
+    if (jobsRes.error) return { ...empty, error: jobsRes.error.message }
+
+    const statusMap: Record<string, number> = {}
+    const priorityMap: Record<string, number> = {}
+    const buildingMap: Record<string, number> = {}
+    const categoryMap: Record<string, number> = {}
+    const staffMap: Record<string, number> = {}
+
+    for (const job of (jobsRes.data ?? [])) {
+      const s = job.status as string
+      const p = (job as any).priority as string
+      statusMap[s] = (statusMap[s] ?? 0) + 1
+      priorityMap[p] = (priorityMap[p] ?? 0) + 1
+      const bn = (job.building as any)?.name ?? 'No building'
+      buildingMap[bn] = (buildingMap[bn] ?? 0) + 1
+      const cn = (job.category as any)?.name ?? 'Uncategorised'
+      categoryMap[cn] = (categoryMap[cn] ?? 0) + 1
+      if (OPEN_STATUSES.includes(s as MaintenanceStatus)) {
+        const sn = (job.assigned_staff as any)?.full_name ?? 'Unassigned'
+        staffMap[sn] = (staffMap[sn] ?? 0) + 1
+      }
+    }
+
+    const completed = completedRes.data ?? []
+    let avgDays: number | null = null
+    if (completed.length > 0) {
+      const total = completed.reduce((sum, j) => {
+        if (!j.completed_at || !j.created_at) return sum
+        return sum + (new Date(j.completed_at).getTime() - new Date(j.created_at).getTime()) / 86_400_000
+      }, 0)
+      avgDays = Math.round(total / completed.length)
+    }
+
+    const sort = (m: Record<string, number>) =>
+      Object.entries(m).sort((a, b) => b[1] - a[1])
+
+    return {
+      byStatus: sort(statusMap).map(([status, count]) => ({ status, count })),
+      byPriority: sort(priorityMap).map(([priority, count]) => ({ priority, count })),
+      byBuilding: sort(buildingMap).map(([building, count]) => ({ building, count })),
+      byCategory: sort(categoryMap).map(([category, count]) => ({ category, count })),
+      byStaff: sort(staffMap).map(([staff, open_jobs]) => ({ staff, open_jobs })),
+      completedThisMonth: completed.length,
+      avgDaysToComplete: avgDays,
+      error: null,
+    }
+  } catch (err) {
+    return { ...empty, error: err instanceof Error ? err.message : 'Failed to load analytics' }
   }
 }

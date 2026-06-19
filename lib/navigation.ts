@@ -16,6 +16,7 @@ import {
   CreditCard,
   Calendar,
   ListChecks,
+  RefreshCw,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -68,6 +69,7 @@ export const navGroups: NavGroup[] = [
       { name: 'My Jobs', href: '/maintenance/my-jobs', icon: ListChecks },
       { name: 'Contractors', href: '/maintenance/contractors', icon: Users },
       { name: 'Schedule', href: '/maintenance/schedule', icon: Calendar },
+      { name: 'Recurring', href: '/maintenance/recurring', icon: RefreshCw },
     ],
   },
   {
