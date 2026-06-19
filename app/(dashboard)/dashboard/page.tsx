@@ -1,22 +1,27 @@
 import {
   Building2,
-  CheckCircle2,
-  CircleDot,
   Wrench,
   ClipboardList,
-  Zap,
-  ArrowRight,
   TrendingUp,
+  ArrowRight,
+  Zap,
+  Users,
+  Link2,
+  X,
 } from 'lucide-react'
 import { StatCard } from '@/components/ui/stat-card'
 import {
   MaintenancePriorityBadge,
   MaintenanceStatusBadge,
   ApplicationStatusBadge,
+  Badge,
 } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { IconTile, type TileTone } from '@/components/ui/icon-tile'
+import { ProgressBar } from '@/components/ui/progress'
+import { StatusDot, type DotTone } from '@/components/ui/status-dot'
 import Link from 'next/link'
 import type { MaintenancePriority, MaintenanceStatus, ApplicationStatus } from '@/types'
 
@@ -29,6 +34,35 @@ const stats = {
   pending_applications: 4,
   electricity_pending: 3,
 }
+const occupancyRate = Math.round((stats.occupied_properties / stats.total_properties) * 100)
+
+const onboarding: {
+  title: string
+  description: string
+  icon: typeof Link2
+  tone: TileTone
+  badge: { label: string; variant: 'success' | 'warning' | 'gray' }
+}[] = [
+  { title: 'Connect Reapit', description: 'Link your property source of truth for import-ready sync.', icon: Link2, tone: 'info', badge: { label: 'In progress', variant: 'warning' } },
+  { title: 'Import buildings & rooms', description: '2,480 rooms across 25 buildings mapped and ready.', icon: Building2, tone: 'primary', badge: { label: 'Done', variant: 'success' } },
+  { title: 'Invite your managers', description: 'Add internal property managers and external agents.', icon: Users, tone: 'violet', badge: { label: 'To do', variant: 'gray' } },
+]
+
+const buildingsOccupancy = [
+  { name: 'Parkview Apartments', occupied: 38, total: 42 },
+  { name: 'Monash Towers', occupied: 51, total: 55 },
+  { name: 'University Gardens', occupied: 28, total: 40 },
+  { name: 'Brunswick Studios', occupied: 19, total: 22 },
+  { name: 'Hawthorn Court', occupied: 24, total: 30 },
+  { name: 'Footscray Heights', occupied: 12, total: 25 },
+]
+
+const opsBreakdown: { label: string; value: number; tone: DotTone }[] = [
+  { label: 'Urgent jobs', value: 2, tone: 'neg' },
+  { label: 'In progress', value: 3, tone: 'warn' },
+  { label: 'Scheduled', value: 4, tone: 'info' },
+  { label: 'Completed this week', value: 11, tone: 'pos' },
+]
 
 const recentMaintenance = [
   { id: 'm1', title: 'Water damage - ceiling stain', property: 'Unit 301 · Parkview Apts', priority: 'urgent' as MaintenancePriority, status: 'in_progress' as MaintenanceStatus, due: '22 Jun 2026' },
@@ -39,98 +73,178 @@ const recentMaintenance = [
 ]
 
 const recentApplications = [
-  { id: 'a1', applicant: 'Mei Lin Chen', email: 'meilin.chen@student.unimelb.edu.au', property: 'Unit 102 · Parkview Apts', moveIn: '1 Jul 2026', status: 'reviewing' as ApplicationStatus, agent: 'CBD Referrals' },
-  { id: 'a2', applicant: 'Arjun Patel', email: 'arjun.p@student.rmit.edu.au', property: 'Unit 1B · University Gardens', moveIn: '1 Jul 2026', status: 'new' as ApplicationStatus, agent: 'Direct' },
-  { id: 'a3', applicant: 'Sophie Thompson', email: 'sophie.t@student.monash.edu', property: 'Unit B01 · Hawthorn Court', moveIn: '1 Aug 2026', status: 'approved' as ApplicationStatus, agent: 'Suburban Lets' },
-  { id: 'a4', applicant: 'Hamid Rashidi', email: 'h.rashidi@student.vu.edu.au', property: 'Unit 101 · Footscray Heights', moveIn: '25 Jun 2026', status: 'new' as ApplicationStatus, agent: 'Direct' },
+  { id: 'a1', applicant: 'Mei Lin Chen', property: 'Unit 102 · Parkview Apts', moveIn: '1 Jul 2026', status: 'reviewing' as ApplicationStatus, agent: 'CBD Referrals' },
+  { id: 'a2', applicant: 'Arjun Patel', property: 'Unit 1B · University Gardens', moveIn: '1 Jul 2026', status: 'new' as ApplicationStatus, agent: 'Direct' },
+  { id: 'a3', applicant: 'Sophie Thompson', property: 'Unit B01 · Hawthorn Court', moveIn: '1 Aug 2026', status: 'approved' as ApplicationStatus, agent: 'Suburban Lets' },
+  { id: 'a4', applicant: 'Hamid Rashidi', property: 'Unit 101 · Footscray Heights', moveIn: '25 Jun 2026', status: 'new' as ApplicationStatus, agent: 'Direct' },
 ]
-
-const occupancyRate = Math.round((stats.occupied_properties / stats.total_properties) * 100)
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-7">
       {/* Welcome */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Good morning, Alex</h1>
-          <p className="text-slate-500 mt-0.5">Thursday, 19 June 2026 · Metro Student Housing</p>
+          <h1 className="text-xl font-semibold text-ink">Good morning, Alex</h1>
+          <p className="mt-0.5 text-sm text-ink-muted">
+            Thursday, 19 June 2026 · Metro Student Housing
+          </p>
         </div>
-        <div className="hidden sm:flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-            <TrendingUp className="h-4 w-4 text-green-600" />
-            <span className="text-sm font-semibold text-green-700">{occupancyRate}% Occupancy</span>
-          </div>
+        <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 shadow-card">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold text-ink">{occupancyRate}%</span>
+          <span className="text-sm text-ink-muted">occupancy</span>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* Onboarding strip */}
+      <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary-soft text-primary">
+              <TrendingUp className="h-3 w-3" />
+            </span>
+            <h2 className="text-sm font-semibold text-ink">Get started with AccomHub</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-muted">
+                <div className="h-full w-1/3 rounded-full bg-primary" />
+              </div>
+              <span className="text-xs font-medium text-ink-subtle">1/3</span>
+            </div>
+            <button className="text-ink-subtle transition-colors hover:text-ink-muted">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {onboarding.map((step) => (
+            <div
+              key={step.title}
+              className="rounded-xl border border-line bg-surface p-4 transition-colors hover:border-line-strong"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <IconTile icon={step.icon} tone={step.tone} />
+                <Badge variant={step.badge.variant} dot>{step.badge.label}</Badge>
+              </div>
+              <h3 className="text-sm font-semibold text-ink">{step.title}</h3>
+              <p className="mt-1 text-[13px] leading-snug text-ink-muted">{step.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Metric cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Total Properties"
           value={stats.total_properties}
           icon={Building2}
-          iconColor="text-slate-600"
-          iconBg="bg-slate-100"
-          className="xl:col-span-1"
+          iconTone="neutral"
+          subtitle="Across 10 buildings"
         />
         <StatCard
-          title="Occupied"
-          value={stats.occupied_properties}
-          subtitle={`${occupancyRate}% occupancy rate`}
-          icon={CheckCircle2}
-          iconColor="text-blue-600"
-          iconBg="bg-blue-50"
-          className="xl:col-span-1"
-        />
-        <StatCard
-          title="Vacant"
-          value={stats.vacant_properties}
-          subtitle="Available now"
-          icon={CircleDot}
-          iconColor="text-green-600"
-          iconBg="bg-green-50"
-          className="xl:col-span-1"
+          title="Occupancy Rate"
+          value={`${occupancyRate}%`}
+          icon={TrendingUp}
+          iconTone="primary"
+          delta={{ value: 4, positive: true, label: 'vs. last month' }}
         />
         <StatCard
           title="Open Maintenance"
           value={stats.open_maintenance_jobs}
-          subtitle="2 urgent"
           icon={Wrench}
-          iconColor="text-orange-600"
-          iconBg="bg-orange-50"
-          className="xl:col-span-1"
+          iconTone="warn"
+          subtitle="2 urgent · 1 overdue"
         />
         <StatCard
           title="Pending Applications"
           value={stats.pending_applications}
           icon={ClipboardList}
-          iconColor="text-purple-600"
-          iconBg="bg-purple-50"
-          className="xl:col-span-1"
-        />
-        <StatCard
-          title="Electricity Pending"
-          value={stats.electricity_pending}
-          subtitle="Awaiting consent"
-          icon={Zap}
-          iconColor="text-amber-600"
-          iconBg="bg-amber-50"
-          className="xl:col-span-1"
+          iconTone="violet"
+          subtitle="Awaiting review"
         />
       </div>
 
-      {/* Tables row */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Occupancy + Ops snapshot */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Portfolio Occupancy</CardTitle>
+                <p className="mt-0.5 text-[13px] text-ink-muted">Occupied rooms by building</p>
+              </div>
+              <Link href="/buildings">
+                <Button variant="ghost" size="sm">
+                  All buildings <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {buildingsOccupancy.map((b) => {
+              const pct = Math.round((b.occupied / b.total) * 100)
+              return (
+                <div key={b.name} className="flex items-center gap-4">
+                  <div className="w-44 shrink-0">
+                    <p className="truncate text-sm font-medium text-ink">{b.name}</p>
+                    <p className="text-xs text-ink-subtle">
+                      {b.occupied} of {b.total} rooms
+                    </p>
+                  </div>
+                  <ProgressBar
+                    value={pct}
+                    showLabel
+                    tone={pct >= 90 ? 'primary' : pct >= 70 ? 'info' : 'warn'}
+                    className="flex-1"
+                  />
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Operations Snapshot</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3.5">
+            {opsBreakdown.map((row) => (
+              <div key={row.label} className="flex items-center justify-between">
+                <StatusDot tone={row.tone} label={row.label} />
+                <span className="text-sm font-semibold text-ink tabular-nums">{row.value}</span>
+              </div>
+            ))}
+            <div className="space-y-3.5 border-t border-line pt-3.5">
+              <div className="flex items-center justify-between">
+                <StatusDot tone="warn" label="Electricity pending setup" />
+                <span className="text-sm font-semibold text-ink tabular-nums">{stats.electricity_pending}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <StatusDot tone="primary" label="Vacant & available" />
+                <span className="text-sm font-semibold text-ink tabular-nums">{stats.vacant_properties}</span>
+              </div>
+            </div>
+            <Link href="/maintenance" className="block pt-1">
+              <Button variant="outline" size="sm" className="w-full">
+                Open maintenance board
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tables */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {/* Recent Maintenance */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Recent Maintenance Jobs</CardTitle>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {stats.open_maintenance_jobs} open jobs
-                </p>
+                <p className="mt-0.5 text-xs text-ink-subtle">{stats.open_maintenance_jobs} open jobs</p>
               </div>
               <Link href="/maintenance">
                 <Button variant="ghost" size="sm">
@@ -152,19 +266,15 @@ export default function DashboardPage() {
               <TableBody>
                 {recentMaintenance.map((job) => (
                   <TableRow key={job.id}>
-                    <TableCell className="max-w-[180px]">
-                      <Link href={`/maintenance/${job.id}`} className="hover:text-green-600">
-                        <p className="font-medium text-slate-900 truncate text-sm">{job.title}</p>
-                        <p className="text-xs text-slate-400 truncate">{job.property}</p>
+                    <TableCell className="max-w-[190px]">
+                      <Link href={`/maintenance/${job.id}`} className="block">
+                        <p className="truncate text-sm font-medium text-ink hover:text-primary">{job.title}</p>
+                        <p className="truncate text-xs text-ink-subtle">{job.property}</p>
                       </Link>
                     </TableCell>
-                    <TableCell>
-                      <MaintenancePriorityBadge priority={job.priority} />
-                    </TableCell>
-                    <TableCell>
-                      <MaintenanceStatusBadge status={job.status} />
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500">{job.due}</TableCell>
+                    <TableCell><MaintenancePriorityBadge priority={job.priority} /></TableCell>
+                    <TableCell><MaintenanceStatusBadge status={job.status} /></TableCell>
+                    <TableCell className="text-xs text-ink-muted">{job.due}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -178,9 +288,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Recent Applications</CardTitle>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {stats.pending_applications} pending review
-                </p>
+                <p className="mt-0.5 text-xs text-ink-subtle">{stats.pending_applications} pending review</p>
               </div>
               <Link href="/applications">
                 <Button variant="ghost" size="sm">
@@ -203,16 +311,14 @@ export default function DashboardPage() {
                 {recentApplications.map((app) => (
                   <TableRow key={app.id}>
                     <TableCell className="max-w-[160px]">
-                      <p className="font-medium text-slate-900 truncate text-sm">{app.applicant}</p>
-                      <p className="text-xs text-slate-400 truncate">{app.agent}</p>
+                      <p className="truncate text-sm font-medium text-ink">{app.applicant}</p>
+                      <p className="truncate text-xs text-ink-subtle">{app.agent}</p>
                     </TableCell>
-                    <TableCell className="max-w-[140px]">
-                      <p className="text-sm text-slate-700 truncate">{app.property}</p>
+                    <TableCell className="max-w-[150px]">
+                      <p className="truncate text-sm text-ink-muted">{app.property}</p>
                     </TableCell>
-                    <TableCell>
-                      <ApplicationStatusBadge status={app.status} />
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500">{app.moveIn}</TableCell>
+                    <TableCell><ApplicationStatusBadge status={app.status} /></TableCell>
+                    <TableCell className="text-xs text-ink-muted">{app.moveIn}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -220,49 +326,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Link href="/maintenance/new">
-              <div className="flex flex-col items-center gap-2 p-4 border border-slate-200 rounded-xl hover:border-green-300 hover:bg-green-50 transition-colors cursor-pointer group">
-                <div className="p-2 bg-orange-50 rounded-lg group-hover:bg-orange-100">
-                  <Wrench className="h-5 w-5 text-orange-600" />
-                </div>
-                <span className="text-sm font-medium text-slate-700 text-center">New Maintenance Job</span>
-              </div>
-            </Link>
-            <Link href="/applications/new">
-              <div className="flex flex-col items-center gap-2 p-4 border border-slate-200 rounded-xl hover:border-green-300 hover:bg-green-50 transition-colors cursor-pointer group">
-                <div className="p-2 bg-purple-50 rounded-lg group-hover:bg-purple-100">
-                  <ClipboardList className="h-5 w-5 text-purple-600" />
-                </div>
-                <span className="text-sm font-medium text-slate-700 text-center">New Application</span>
-              </div>
-            </Link>
-            <Link href="/availability">
-              <div className="flex flex-col items-center gap-2 p-4 border border-slate-200 rounded-xl hover:border-green-300 hover:bg-green-50 transition-colors cursor-pointer group">
-                <div className="p-2 bg-green-50 rounded-lg group-hover:bg-green-100">
-                  <Building2 className="h-5 w-5 text-green-600" />
-                </div>
-                <span className="text-sm font-medium text-slate-700 text-center">View Availability</span>
-              </div>
-            </Link>
-            <Link href="/electricity">
-              <div className="flex flex-col items-center gap-2 p-4 border border-slate-200 rounded-xl hover:border-green-300 hover:bg-green-50 transition-colors cursor-pointer group">
-                <div className="p-2 bg-amber-50 rounded-lg group-hover:bg-amber-100">
-                  <Zap className="h-5 w-5 text-amber-600" />
-                </div>
-                <span className="text-sm font-medium text-slate-700 text-center">Electricity Accounts</span>
-              </div>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

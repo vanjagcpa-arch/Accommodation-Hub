@@ -1,38 +1,52 @@
 import { cn } from '@/lib/utils'
 import type { PropertyStatus, MaintenancePriority, MaintenanceStatus, ApplicationStatus, ElectricityStatus } from '@/types'
 
+type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'gray'
+
 interface BadgeProps {
   children: React.ReactNode
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'gray'
+  variant?: BadgeVariant
+  dot?: boolean
   className?: string
 }
 
-export function Badge({ children, variant = 'default', className }: BadgeProps) {
-  const variants = {
-    default: 'bg-slate-100 text-slate-700 border border-slate-200',
-    success: 'bg-green-50 text-green-700 border border-green-200',
-    warning: 'bg-amber-50 text-amber-700 border border-amber-200',
-    danger: 'bg-red-50 text-red-700 border border-red-200',
-    info: 'bg-blue-50 text-blue-700 border border-blue-200',
-    purple: 'bg-purple-50 text-purple-700 border border-purple-200',
-    gray: 'bg-gray-100 text-gray-600 border border-gray-200',
-  }
+const variantStyles: Record<BadgeVariant, string> = {
+  default: 'bg-surface-muted text-ink-muted border-line',
+  success: 'bg-green-50 text-green-700 border-green-200/70',
+  warning: 'bg-amber-50 text-amber-700 border-amber-200/70',
+  danger: 'bg-red-50 text-red-700 border-red-200/70',
+  info: 'bg-blue-50 text-blue-700 border-blue-200/70',
+  purple: 'bg-violet-50 text-violet-700 border-violet-200/70',
+  gray: 'bg-surface-muted text-ink-subtle border-line',
+}
 
+const dotStyles: Record<BadgeVariant, string> = {
+  default: 'bg-ink-faint',
+  success: 'bg-green-500',
+  warning: 'bg-amber-500',
+  danger: 'bg-red-500',
+  info: 'bg-blue-500',
+  purple: 'bg-violet-500',
+  gray: 'bg-ink-faint',
+}
+
+export function Badge({ children, variant = 'default', dot = false, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
-        variants[variant],
+        'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium',
+        variantStyles[variant],
         className
       )}
     >
+      {dot && <span className={cn('h-1.5 w-1.5 rounded-full', dotStyles[variant])} />}
       {children}
     </span>
   )
 }
 
 export function PropertyStatusBadge({ status }: { status: PropertyStatus }) {
-  const config: Record<PropertyStatus, { label: string; variant: BadgeProps['variant'] }> = {
+  const config: Record<PropertyStatus, { label: string; variant: BadgeVariant }> = {
     available: { label: 'Available', variant: 'success' },
     occupied: { label: 'Occupied', variant: 'info' },
     on_hold: { label: 'On Hold', variant: 'warning' },
@@ -41,22 +55,22 @@ export function PropertyStatusBadge({ status }: { status: PropertyStatus }) {
     unavailable: { label: 'Unavailable', variant: 'gray' },
   }
   const { label, variant } = config[status] ?? { label: status, variant: 'default' as const }
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge variant={variant} dot>{label}</Badge>
 }
 
 export function MaintenancePriorityBadge({ priority }: { priority: MaintenancePriority }) {
-  const config: Record<MaintenancePriority, { label: string; variant: BadgeProps['variant'] }> = {
+  const config: Record<MaintenancePriority, { label: string; variant: BadgeVariant }> = {
     urgent: { label: 'Urgent', variant: 'danger' },
     high: { label: 'High', variant: 'warning' },
     medium: { label: 'Medium', variant: 'info' },
     low: { label: 'Low', variant: 'gray' },
   }
   const { label, variant } = config[priority] ?? { label: priority, variant: 'default' as const }
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge variant={variant} dot>{label}</Badge>
 }
 
 export function MaintenanceStatusBadge({ status }: { status: MaintenanceStatus }) {
-  const config: Record<MaintenanceStatus, { label: string; variant: BadgeProps['variant'] }> = {
+  const config: Record<MaintenanceStatus, { label: string; variant: BadgeVariant }> = {
     new: { label: 'New', variant: 'info' },
     triage: { label: 'Triage', variant: 'purple' },
     assigned: { label: 'Assigned', variant: 'default' },
@@ -69,11 +83,11 @@ export function MaintenanceStatusBadge({ status }: { status: MaintenanceStatus }
     cancelled: { label: 'Cancelled', variant: 'gray' },
   }
   const { label, variant } = config[status] ?? { label: status, variant: 'default' as const }
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge variant={variant} dot>{label}</Badge>
 }
 
 export function ApplicationStatusBadge({ status }: { status: ApplicationStatus }) {
-  const config: Record<ApplicationStatus, { label: string; variant: BadgeProps['variant'] }> = {
+  const config: Record<ApplicationStatus, { label: string; variant: BadgeVariant }> = {
     new: { label: 'New', variant: 'info' },
     reviewing: { label: 'Reviewing', variant: 'purple' },
     approved: { label: 'Approved', variant: 'success' },
@@ -82,11 +96,11 @@ export function ApplicationStatusBadge({ status }: { status: ApplicationStatus }
     moved_in: { label: 'Moved In', variant: 'success' },
   }
   const { label, variant } = config[status] ?? { label: status, variant: 'default' as const }
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge variant={variant} dot>{label}</Badge>
 }
 
 export function ElectricityStatusBadge({ status }: { status: ElectricityStatus }) {
-  const config: Record<ElectricityStatus, { label: string; variant: BadgeProps['variant'] }> = {
+  const config: Record<ElectricityStatus, { label: string; variant: BadgeVariant }> = {
     not_required: { label: 'Not Required', variant: 'gray' },
     pending_consent: { label: 'Pending Consent', variant: 'warning' },
     pending_setup: { label: 'Pending Setup', variant: 'purple' },
@@ -94,5 +108,5 @@ export function ElectricityStatusBadge({ status }: { status: ElectricityStatus }
     closed: { label: 'Closed', variant: 'gray' },
   }
   const { label, variant } = config[status] ?? { label: status, variant: 'default' as const }
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge variant={variant} dot>{label}</Badge>
 }
