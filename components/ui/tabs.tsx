@@ -25,33 +25,34 @@ export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
   }
 
   return (
-    <div className={cn('flex gap-1 border-b border-slate-200', className)}>
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => handleClick(tab.id)}
-          className={cn(
-            'inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
-            active === tab.id
-              ? 'border-green-600 text-green-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-          )}
-        >
-          {tab.label}
-          {tab.count !== undefined && (
-            <span
-              className={cn(
-                'inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-xs font-semibold',
-                active === tab.id
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-slate-100 text-slate-500'
-              )}
-            >
-              {tab.count}
-            </span>
-          )}
-        </button>
-      ))}
+    <div className={cn('flex items-center gap-1 border-b border-line', className)}>
+      {tabs.map((tab) => {
+        const isActive = active === tab.id
+        return (
+          <button
+            key={tab.id}
+            onClick={() => handleClick(tab.id)}
+            className={cn(
+              '-mb-px inline-flex items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors',
+              isActive
+                ? 'border-primary text-ink'
+                : 'border-transparent text-ink-subtle hover:text-ink-muted'
+            )}
+          >
+            {tab.label}
+            {tab.count !== undefined && (
+              <span
+                className={cn(
+                  'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold',
+                  isActive ? 'bg-primary-soft text-primary-active' : 'bg-surface-muted text-ink-subtle'
+                )}
+              >
+                {tab.count}
+              </span>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }
