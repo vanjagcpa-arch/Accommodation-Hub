@@ -36,8 +36,8 @@ export async function GET(request: Request) {
       const csvRows = [
         ['TenantCode', 'TenantName', 'Property', 'Building', 'Provider', 'MoveInDate'].join(','),
         ...active.map((a) => {
-          const t = a.tenant as { first_name: string; last_name: string } | null
-          const p = a.property as { unit_number: string; building: { name: string } | null } | null
+          const t = a.tenant as unknown as { first_name: string; last_name: string } | null
+          const p = a.property as unknown as { unit_number: string; building: { name: string } | null } | null
           return [
             a.tenant_code,
             t ? `${t.first_name} ${t.last_name}` : '',
