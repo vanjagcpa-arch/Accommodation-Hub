@@ -9,6 +9,7 @@ import { isOverdue } from '@/lib/maintenance/constants'
 import { cn } from '@/lib/utils'
 import { JobsFilters } from './_components/jobs-filters'
 import type { MaintenanceJobFilters } from '@/types'
+import PageAssistantButton from '@/components/ai/page-assistant-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,9 +71,15 @@ export default async function MaintenancePage({
             Repairs &amp; maintenance operations · {stats.open} open · {stats.urgent} urgent · {stats.overdue} overdue
           </p>
         </div>
-        <Link href="/maintenance/new">
-          <Button><Plus className="h-4 w-4" />New Request</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <PageAssistantButton
+            context={{ page: 'Maintenance' }}
+            suggestedPrompts={['Which maintenance jobs are blocking leasing?', 'Summarise open maintenance jobs', 'Which jobs are unassigned?', 'What needs attention today?', 'Which jobs should be grouped by building?']}
+          />
+          <Link href="/maintenance/new">
+            <Button><Plus className="h-4 w-4" />New Request</Button>
+          </Link>
+        </div>
       </div>
 
       {/* KPI row */}
@@ -135,6 +142,7 @@ export default async function MaintenancePage({
               <TableRow>
                 <TableHead>Job</TableHead>
                 <TableHead>Property</TableHead>
+                <TableHead>Tenant</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
@@ -144,9 +152,13 @@ export default async function MaintenancePage({
             </TableHeader>
             <TableBody>
               {jobs.length === 0 ? (
-                <TableEmpty colSpan={7} message={error ? 'No data — see the notice above.' : 'No maintenance jobs match these filters.'} />
+                <TableEmpty colSpan={8} message={error ? 'No data — see the notice above.' : 'No maintenance jobs match these filters.'} />
               ) : jobs.map((job) => {
                 const overdue = isOverdue(job.due_date, job.status)
+                const owner = (job.property as any)?.owner
+                const ownerDisplay = owner
+                  ? (owner.company_name ?? `${owner.first_name} ${owner.last_name}`)
+                  : null
                 return (
                   <TableRow key={job.id}>
                     <TableCell className="max-w-[260px]">
@@ -158,6 +170,19 @@ export default async function MaintenancePage({
                     <TableCell>
                       <p className="text-[13px] text-ink">{job.property?.unit_number ? `Unit ${job.property.unit_number}` : '—'}</p>
                       <p className="text-[11px] text-ink-faint">{job.building?.name ?? '—'}</p>
+                      {ownerDisplay && (
+                        <p className="text-[11px] text-ink-subtle mt-0.5">Owner: {ownerDisplay}</p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {job.tenant ? (
+                        <div>
+                          <p className="text-[13px] text-ink">{job.tenant.first_name} {job.tenant.last_name}</p>
+                          {job.tenant.email && <p className="text-[11px] text-ink-faint">{job.tenant.email}</p>}
+                        </div>
+                      ) : (
+                        <span className="text-[13px] text-ink-faint">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {job.category?.name
