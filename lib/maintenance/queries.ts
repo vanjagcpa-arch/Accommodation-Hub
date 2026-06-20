@@ -165,7 +165,7 @@ export async function getMaintenanceFormOptions(): Promise<MaintenanceFormOption
   try {
     const supabase = await createClient()
     const [buildings, properties, tenants, categories, staff] = await Promise.all([
-      supabase.from('buildings').select('id, name').eq('is_active', true).order('name'),
+      supabase.from('buildings').select('id, name').eq('is_active', true).eq('manages_maintenance', true).order('name'),
       supabase.from('properties').select('id, unit_number, building_id').eq('is_active', true).order('unit_number'),
       supabase.from('tenants').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
       supabase.from('maintenance_categories').select('id, name, default_priority').eq('is_active', true).order('sort_order'),

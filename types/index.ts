@@ -119,6 +119,8 @@ export interface Building {
   reapit_external_id: string | null
   listonce_external_id: string | null
   myob_external_id: string | null
+  manages_electricity: boolean
+  manages_maintenance: boolean
   is_active: boolean
   created_at: string
   updated_at: string
