@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { MobileNav } from '@/components/layout/mobile-nav'
+import AssistantTrigger from '@/components/ai/assistant-trigger'
 
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -78,6 +79,9 @@ export function Header() {
 
       {/* Right utilities */}
       <div className="flex items-center gap-2">
+        {/* AI Assistant */}
+        <AssistantTrigger />
+
         {/* Command / search pill */}
         <button className="hidden items-center gap-2 rounded-lg border border-line bg-surface-muted px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:border-line-strong hover:text-ink-muted sm:flex">
           <Search className="h-4 w-4" />

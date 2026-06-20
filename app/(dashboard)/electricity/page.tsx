@@ -5,6 +5,7 @@ import {
   Zap, Upload, FileText, RefreshCw, Check, AlertTriangle,
   Mail, Download, Plus, X, Settings as SettingsIcon,
 } from 'lucide-react'
+import PageAssistantButton from '@/components/ai/page-assistant-button'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -299,6 +300,10 @@ export default function ElectricityPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <PageAssistantButton
+            context={{ page: 'Electricity Billing' }}
+            suggestedPrompts={['Which electricity accounts are overdue?', 'Explain billing status', 'Draft an SMS reminder for an overdue account', 'Which accounts have failed DDR?', 'Summarise electricity billing this month']}
+          />
           <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
           <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
             <Upload className="h-3.5 w-3.5" />

@@ -160,7 +160,7 @@ export async function getTenant(id: string): Promise<TenantDetailResult> {
     const tenant: TenantDetail = {
       ...(tenantRes.data as unknown as Tenant),
       occupancies: (occupanciesRes.data ?? []) as unknown as TenantDetail['occupancies'],
-      applications: (applicationsRes.data ?? []) as TenantDetail['applications'],
+      applications: (applicationsRes.data ?? []) as unknown as TenantDetail['applications'],
       open_job_count,
     }
 

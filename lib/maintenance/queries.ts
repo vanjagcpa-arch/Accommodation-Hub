@@ -15,8 +15,8 @@ import { OPEN_STATUSES } from './constants'
 const JOB_LIST_SELECT = `
   *,
   building:buildings(id, name),
-  property:properties(id, unit_number),
-  tenant:tenants(id, first_name, last_name),
+  property:properties(id, unit_number, owner:owners!owner_id(id, first_name, last_name, email, company_name)),
+  tenant:tenants(id, first_name, last_name, email, phone),
   category:maintenance_categories(id, name, color),
   assigned_staff:maintenance_staff_profiles(id, full_name, color)
 `
@@ -24,7 +24,7 @@ const JOB_LIST_SELECT = `
 const JOB_DETAIL_SELECT = `
   *,
   building:buildings(id, name, address),
-  property:properties(id, unit_number, property_type),
+  property:properties(id, unit_number, property_type, owner:owners!owner_id(id, first_name, last_name, email, phone, company_name)),
   tenant:tenants(id, first_name, last_name, email, phone),
   category:maintenance_categories(id, name, color),
   assigned_staff:maintenance_staff_profiles(id, full_name, trade, phone, email, color)
@@ -165,7 +165,7 @@ export async function getMaintenanceFormOptions(): Promise<MaintenanceFormOption
   try {
     const supabase = await createClient()
     const [buildings, properties, tenants, categories, staff] = await Promise.all([
-      supabase.from('buildings').select('id, name').eq('is_active', true).order('name'),
+      supabase.from('buildings').select('id, name').eq('is_active', true).eq('manages_maintenance', true).order('name'),
       supabase.from('properties').select('id, unit_number, building_id').eq('is_active', true).order('unit_number'),
       supabase.from('tenants').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
       supabase.from('maintenance_categories').select('id, name, default_priority').eq('is_active', true).order('sort_order'),
