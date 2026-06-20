@@ -17,6 +17,8 @@ import {
   Calendar,
   ListChecks,
   RefreshCw,
+  Tag,
+  Receipt,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -70,6 +72,8 @@ export const navGroups: NavGroup[] = [
       { name: 'Contractors', href: '/maintenance/contractors', icon: Users },
       { name: 'Schedule', href: '/maintenance/schedule', icon: Calendar },
       { name: 'Recurring', href: '/maintenance/recurring', icon: RefreshCw },
+      { name: 'Services', href: '/maintenance/services', icon: Tag },
+      { name: 'Invoices', href: '/maintenance/invoices', icon: Receipt },
     ],
   },
   {
