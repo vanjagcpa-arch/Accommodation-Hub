@@ -1,1 +1,35 @@
-ZXhwb3J0IGNvbnN0IGR5bmFtaWMgPSAnZm9yY2UtZHluYW1pYycKCmltcG9ydCB7IGdldFByb3BlcnRpZXMgfSBmcm9tICdAL2xpYi9wcm9wZXJ0aWVzL3F1ZXJpZXMnCmltcG9ydCB7IGdldEJ1aWxkaW5ncyB9IGZyb20gJ0AvbGliL2J1aWxkaW5ncy9xdWVyaWVzJwppbXBvcnQgUHJvcGVydGllc0NsaWVudCBmcm9tICcuL19jb21wb25lbnRzL3Byb3BlcnRpZXMtY2xpZW50JwoKZXhwb3J0IGRlZmF1bHQgYXN5bmMgZnVuY3Rpb24gUHJvcGVydGllc1BhZ2UoewogIHNlYXJjaFBhcmFtcywKfTogewogIHNlYXJjaFBhcmFtczogUHJvbWlzZTxSZWNvcmQ8c3RyaW5nLCBzdHJpbmcgfCBzdHJpbmdbXSB8IHVuZGVmaW5lZD4+Cn0pIHsKICBjb25zdCBzcCA9IGF3YWl0IHNlYXJjaFBhcmFtcwogIGNvbnN0IGZpcnN0ID0gKHY6IHN0cmluZyB8IHN0cmluZ1tdIHwgdW5kZWZpbmVkKSA9PiAoQXJyYXkuaXNBcnJheSh2KSA/IHZbMF0gOiB2KQoKICBjb25zdCBmaWx0ZXJzID0gewogICAgcTogZmlyc3Qoc3AucSksCiAgICBidWlsZGluZ0lkOiBmaXJzdChzcC5idWlsZGluZyksCiAgICBzdGF0dXM6IGZpcnN0KHNwLnN0YXR1cyksCiAgICB0eXBlOiBmaXJzdChzcC50eXBlKSwKICB9CgogIGNvbnN0IFt7IHByb3BlcnRpZXMsIGVycm9yIH0sIHsgYnVpbGRpbmdzIH1dID0gYXdhaXQgUHJvbWlzZS5hbGwoWwogICAgZ2V0UHJvcGVydGllcyhmaWx0ZXJzKSwKICAgIGdldEJ1aWxkaW5ncygpLAogIF0pCgogIHJldHVybiAoCiAgICA8UHJvcGVydGllc0NsaWVudAogICAgICBwcm9wZXJ0aWVzPXtwcm9wZXJ0aWVzfQogICAgICBidWlsZGluZ3M9e2J1aWxkaW5nc30KICAgICAgZXJyb3I9e2Vycm9yfQogICAgICBhY3RpdmVGaWx0ZXJzPXtmaWx0ZXJzfQogICAgLz4KICApCn0K
+export const dynamic = 'force-dynamic'
+
+import { getProperties } from '@/lib/properties/queries'
+import { getBuildings } from '@/lib/buildings/queries'
+import PropertiesClient from './_components/properties-client'
+
+export default async function PropertiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const sp = await searchParams
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+
+  const filters = {
+    q: first(sp.q),
+    buildingId: first(sp.building),
+    status: first(sp.status),
+    type: first(sp.type),
+  }
+
+  const [{ properties, error }, { buildings }] = await Promise.all([
+    getProperties(filters),
+    getBuildings(),
+  ])
+
+  return (
+    <PropertiesClient
+      properties={properties}
+      buildings={buildings}
+      error={error}
+      activeFilters={filters}
+    />
+  )
+}

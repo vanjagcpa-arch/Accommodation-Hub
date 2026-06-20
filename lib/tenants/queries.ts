@@ -79,7 +79,7 @@ export async function getTenants(filters: TenantFilters = {}): Promise<TenantLis
       .in('tenant_id', tenantIds)
       .eq('is_current', true)
 
-    // Build lookup map tenant_id → occupancy
+    // Build lookup map tenant_id -> occupancy
     const occMap: Record<string, typeof occupancies extends (infer T)[] | null ? T : never> = {}
     if (occupancies) {
       for (const occ of occupancies) {
