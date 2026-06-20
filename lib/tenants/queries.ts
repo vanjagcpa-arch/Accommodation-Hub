@@ -33,7 +33,6 @@ export async function getTenants(filters: TenantFilters = {}): Promise<TenantLis
   try {
     const supabase = await createClient()
 
-    // Fetch active tenants with a separate occupancy fetch to avoid inner join dropping unmatched
     let baseQuery = supabase
       .from('tenants')
       .select('*')
@@ -67,7 +66,6 @@ export async function getTenants(filters: TenantFilters = {}): Promise<TenantLis
 
     const tenantIds = tenants.map((t) => t.id)
 
-    // Fetch current occupancies separately (left join equivalent)
     const { data: occupancies } = await supabase
       .from('occupancies')
       .select(`
@@ -79,7 +77,6 @@ export async function getTenants(filters: TenantFilters = {}): Promise<TenantLis
       .in('tenant_id', tenantIds)
       .eq('is_current', true)
 
-    // Build lookup map tenant_id -> occupancy
     const occMap: Record<string, typeof occupancies extends (infer T)[] | null ? T : never> = {}
     if (occupancies) {
       for (const occ of occupancies) {
@@ -92,7 +89,6 @@ export async function getTenants(filters: TenantFilters = {}): Promise<TenantLis
       current_occupancy: (occMap[t.id] as unknown as TenantListItem['current_occupancy']) ?? null,
     }))
 
-    // Client-side building filter (after join)
     if (filters.building) {
       items = items.filter(
         (t) => t.current_occupancy?.property?.building_id === filters.building
@@ -145,7 +141,6 @@ export async function getTenant(id: string): Promise<TenantDetailResult> {
     if (tenantRes.error) return { tenant: null, error: tenantRes.error.message }
     if (!tenantRes.data) return { tenant: null, error: 'Tenant not found' }
 
-    // Count open maintenance jobs at their current property
     let open_job_count = 0
     const currentOcc = (occupanciesRes.data ?? []).find((o) => o.is_current)
     if (currentOcc?.property_id) {
