@@ -42,7 +42,7 @@ export default async function ElectricityTenantsPage() {
       .in('property.building_id', buildingIds)
       .order('lease_end', { ascending: true })
 
-    occupancies = (data ?? []).filter(
+    occupancies = ((data ?? []) as unknown as typeof occupancies).filter(
       (o): o is typeof occupancies[number] => o.property !== null
     )
   }
