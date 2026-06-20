@@ -1,1 +1,317 @@
-J3VzZSBjbGllbnQnCgppbXBvcnQgeyB1c2VSb3V0ZXIsIHVzZVBhdGhuYW1lIH0gZnJvbSAnbmV4dC9uYXZpZ2F0aW9uJwppbXBvcnQgTGluayBmcm9tICduZXh0L2xpbmsnCmltcG9ydCB7IFBsdXMsIFNlYXJjaCwgSG9tZSwgRXllLCBQZW5jaWwgfSBmcm9tICdsdWNpZGUtcmVhY3QnCmltcG9ydCB7IGNuIH0gZnJvbSAnQC9saWIvdXRpbHMnCmltcG9ydCB7IGZvcm1hdEN1cnJlbmN5IH0gZnJvbSAnQC9saWIvdXRpbHMnCmltcG9ydCB7IFByb3BlcnR5U3RhdHVzQmFkZ2UgfSBmcm9tICdAL2NvbXBvbmVudHMvdWkvYmFkZ2UnCmltcG9ydCB0eXBlIHsgUHJvcGVydHlSb3cgfSBmcm9tICdAL2xpYi9wcm9wZXJ0aWVzL3F1ZXJpZXMnCmltcG9ydCB0eXBlIHsgQnVpbGRpbmdSb3cgfSBmcm9tICdAL2xpYi9idWlsZGluZ3MvcXVlcmllcycKCmludGVyZmFjZSBQcm9wcyB7CiAgcHJvcGVydGllczogUHJvcGVydHlSb3dbXQogIGJ1aWxkaW5nczogQnVpbGRpbmdSb3dbXQogIGVycm9yOiBzdHJpbmcgfCBudWxsCiAgYWN0aXZlRmlsdGVyczogewogICAgcT86IHN0cmluZwogICAgYnVpbGRpbmdJZD86IHN0cmluZwogICAgc3RhdHVzPzogc3RyaW5nCiAgICB0eXBlPzogc3RyaW5nCiAgfQp9Cgpjb25zdCBTVEFUVVNFUyA9IFsKICB7IHZhbHVlOiAnJywgbGFiZWw6ICdBbGwgU3RhdHVzZXMnIH0sCiAgeyB2YWx1ZTogJ2F2YWlsYWJsZScsIGxhYmVsOiAnQXZhaWxhYmxlJyB9LAogIHsgdmFsdWU6ICdvY2N1cGllZCcsIGxhYmVsOiAnT2NjdXBpZWQnIH0sCiAgeyB2YWx1ZTogJ29uX2hvbGQnLCBsYWJlbDogJ09uIEhvbGQnIH0sCiAgeyB2YWx1ZTogJ21haW50ZW5hbmNlX2hvbGQnLCBsYWJlbDogJ01haW50ZW5hbmNlIEhvbGQnIH0sCiAgeyB2YWx1ZTogJ2NvbWluZ19zb29uJywgbGFiZWw6ICdDb21pbmcgU29vbicgfSwKICB7IHZhbHVlOiAndW5hdmFpbGFibGUnLCBsYWJlbDogJ1VuYXZhaWxhYmxlJyB9LApdCgpjb25zdCBUWVBFUyA9IFsKICB7IHZhbHVlOiAnJywgbGFiZWw6ICdBbGwgVHlwZXMnIH0sCiAgeyB2YWx1ZTogJ1N0dWRpbycsIGxhYmVsOiAnU3R1ZGlvJyB9LAogIHsgdmFsdWU6ICcxIEJlZHJvb20nLCBsYWJlbDogJzEgQmVkcm9vbScgfSwKICB7IHZhbHVlOiAnMiBCZWRyb29tJywgbGFiZWw6ICcyIEJlZHJvb20nIH0sCiAgeyB2YWx1ZTogJzMgQmVkcm9vbScsIGxhYmVsOiAnMyBCZWRyb29tJyB9LApdCgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBQcm9wZXJ0aWVzQ2xpZW50KHsgcHJvcGVydGllcywgYnVpbGRpbmdzLCBlcnJvciwgYWN0aXZlRmlsdGVycyB9OiBQcm9wcykgewogIGNvbnN0IHJvdXRlciA9IHVzZVJvdXRlcigpCiAgY29uc3QgcGF0aG5hbWUgPSB1c2VQYXRobmFtZSgpCgogIGZ1bmN0aW9uIHVwZGF0ZUZpbHRlcihrZXk6IHN0cmluZywgdmFsdWU6IHN0cmluZykgewogICAgY29uc3Qgc3AgPSBuZXcgVVJMU2VhcmNoUGFyYW1zKCkKICAgIGlmIChhY3RpdmVGaWx0ZXJzLnEpIHNwLnNldCgncScsIGFjdGl2ZUZpbHRlcnMucSkKICAgIGlmIChhY3RpdmVGaWx0ZXJzLmJ1aWxkaW5nSWQpIHNwLnNldCgnYnVpbGRpbmcnLCBhY3RpdmVGaWx0ZXJzLmJ1aWxkaW5nSWQpCiAgICBpZiAoYWN0aXZlRmlsdGVycy5zdGF0dXMpIHNwLnNldCgnc3RhdHVzJywgYWN0aXZlRmlsdGVycy5zdGF0dXMpCiAgICBpZiAoYWN0aXZlRmlsdGVycy50eXBlKSBzcC5zZXQoJ3R5cGUnLCBhY3RpdmVGaWx0ZXJzLnR5cGUpCiAgICBpZiAodmFsdWUpIHNwLnNldChrZXksIHZhbHVlKQogICAgZWxzZSBzcC5kZWxldGUoa2V5KQogICAgY29uc3QgcXMgPSBzcC50b1N0cmluZygpCiAgICByb3V0ZXIucHVzaChxcyA/IGAke3BhdGhuYW1lfT8ke3FzfWAgOiBwYXRobmFtZSkKICB9CgogIGNvbnN0IG9jY3VwaWVkID0gcHJvcGVydGllcy5maWx0ZXIoKHApID0+IHAuc3RhdHVzID09PSAnb2NjdXBpZWQnKS5sZW5ndGgKICBjb25zdCBhdmFpbGFibGUgPSBwcm9wZXJ0aWVzLmZpbHRlcigocCkgPT4gcC5zdGF0dXMgPT09ICdhdmFpbGFibGUnKS5sZW5ndGgKICBjb25zdCB3aXRoVGVuYW50ID0gcHJvcGVydGllcy5maWx0ZXIoKHApID0+ICEhcC5jdXJyZW50X29jY3VwYW5jeT8udGVuYW50KS5sZW5ndGgKICBjb25zdCB3aXRoT3duZXIgPSBwcm9wZXJ0aWVzLmZpbHRlcigocCkgPT4gISFwLm93bmVyKS5sZW5ndGgKCiAgY29uc3QgaXNEYkVycm9yID0KICAgICEhZXJyb3IgJiYKICAgIChlcnJvci5pbmNsdWRlcygnY29ubmVjdCcpIHx8CiAgICAgIGVycm9yLmluY2x1ZGVzKCdyZWxhdGlvbicpIHx8CiAgICAgIGVycm9yLmluY2x1ZGVzKCdzdXBhYmFzZScpIHx8CiAgICAgIGVycm9yLmluY2x1ZGVzKCdORVhUX1BVQkxJQycpKQoKICByZXR1cm4gKAogICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktNiBtYXgtdy03eGwgbXgtYXV0byI+CiAgICAgIHsvKiBIZWFkZXIgKi99CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGZsZXgtY29sIHNtOmZsZXgtcm93IHNtOml0ZW1zLWNlbnRlciBzbTpqdXN0aWZ5LWJldHdlZW4gZ2FwLTQiPgogICAgICAgIDxkaXY+CiAgICAgICAgICA8aDEgY2xhc3NOYW1lPSJ0ZXh0LXhsIGZvbnQtc2VtaWJvbGQgdGV4dC1pbmsiPlBvcnRmb2xpbzwvaDE+CiAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtaW5rLW11dGVkIHRleHQtc20gbXQtMC41Ij4KICAgICAgICAgICAge3Byb3BlcnRpZXMubGVuZ3RofSBwcm9wZXJ0aWVzIMK3IHtvY2N1cGllZH0gb2NjdXBpZWQgwrcge2F2YWlsYWJsZX0gYXZhaWxhYmxlCiAgICAgICAgICA8L3A+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPExpbmsKICAgICAgICAgIGhyZWY9Ii9wcm9wZXJ0aWVzL25ldyIKICAgICAgICAgIGNsYXNzTmFtZT0iaW5saW5lLWZsZXggaXRlbXMtY2VudGVyIGdhcC0yIHJvdW5kZWQtbGcgYmctcHJpbWFyeSBweC00IHB5LTIgdGV4dC1zbSBmb250LW1lZGl1bSB0ZXh0LXdoaXRlIGhvdmVyOmJnLXByaW1hcnkvOTAiCiAgICAgICAgPgogICAgICAgICAgPFBsdXMgY2xhc3NOYW1lPSJoLTQgdy00IiAvPgogICAgICAgICAgQWRkIFByb3BlcnR5CiAgICAgICAgPC9MaW5rPgogICAgICA8L2Rpdj4KCiAgICAgIHsvKiBFcnJvciBiYW5uZXIgKi99CiAgICAgIHtlcnJvciAmJiAoCiAgICAgICAgPGRpdgogICAgICAgICAgY2xhc3NOYW1lPXtjbigKICAgICAgICAgICAgJ3JvdW5kZWQteGwgYm9yZGVyIHB4LTQgcHktMyB0ZXh0LXNtJywKICAgICAgICAgICAgaXNEYkVycm9yCiAgICAgICAgICAgICAgPyAnYm9yZGVyLWFtYmVyLTIwMCBiZy1hbWJlci01MCB0ZXh0LWFtYmVyLTgwMCcKICAgICAgICAgICAgICA6ICdib3JkZXItcmVkLTIwMCBiZy1yZWQtNTAgdGV4dC1yZWQtNzAwJwogICAgICAgICAgKX0KICAgICAgICA+CiAgICAgICAgICB7aXNEYkVycm9yCiAgICAgICAgICAgID8gJ0RhdGFiYXNlIG5vdCBjb25maWd1cmVkIOKAlCBzZXQgTkVYVF9QVUJMSUNfU1VQQUJBU0VfVVJMIGFuZCBORVhUX1BVQkxJQ19TVVBBQkFTRV9BTk9OX0tFWSB0byBzZWUgbGl2ZSBkYXRhLicKICAgICAgICAgICAgOiBlcnJvcn0KICAgICAgICA8L2Rpdj4KICAgICAgKX0KCiAgICAgIHsvKiBTdGF0cyAqL30KICAgICAgPGRpdiBjbGFzc05hbWU9ImdyaWQgZ3JpZC1jb2xzLTIgc206Z3JpZC1jb2xzLTQgZ2FwLTQiPgogICAgICAgIHtbCiAgICAgICAgICB7IGxhYmVsOiAnVG90YWwgUHJvcGVydGllcycsIHZhbHVlOiBwcm9wZXJ0aWVzLmxlbmd0aCB9LAogICAgICAgICAgeyBsYWJlbDogJ09jY3VwaWVkJywgdmFsdWU6IG9jY3VwaWVkIH0sCiAgICAgICAgICB7IGxhYmVsOiAnQXZhaWxhYmxlJywgdmFsdWU6IGF2YWlsYWJsZSB9LAogICAgICAgICAgeyBsYWJlbDogJ1dpdGggT3duZXInLCB2YWx1ZTogd2l0aE93bmVyIH0sCiAgICAgICAgXS5tYXAoKGNhcmQpID0+ICgKICAgICAgICAgIDxkaXYga2V5PXtjYXJkLmxhYmVsfSBjbGFzc05hbWU9InJvdW5kZWQteGwgYm9yZGVyIGJvcmRlci1saW5lIGJnLXN1cmZhY2Ugc2hhZG93LXNtIHAtNCI+CiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC14cyB0ZXh0LWluay1zdWJ0bGUgZm9udC1tZWRpdW0iPntjYXJkLmxhYmVsfTwvcD4KICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LTJ4bCBmb250LWJvbGQgbXQtMSB0ZXh0LWluayI+e2NhcmQudmFsdWV9PC9wPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgKSl9CiAgICAgIDwvZGl2PgoKICAgICAgey8qIEZpbHRlcnMgKyBUYWJsZSAqL30KICAgICAgPGRpdiBjbGFzc05hbWU9InJvdW5kZWQteGwgYm9yZGVyIGJvcmRlci1saW5lIGJnLXN1cmZhY2Ugb3ZlcmZsb3ctaGlkZGVuIj4KICAgICAgICB7LyogRmlsdGVyIGJhciAqL30KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iYm9yZGVyLWIgYm9yZGVyLWxpbmUgcHgtNCBweS0zIj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGZsZXgtY29sIHNtOmZsZXgtcm93IGdhcC0zIj4KICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InJlbGF0aXZlIGZsZXgtMSBtaW4tdy0wIj4KICAgICAgICAgICAgICA8U2VhcmNoIGNsYXNzTmFtZT0iYWJzb2x1dGUgbGVmdC0zIHRvcC0yLjUgaC00IHctNCB0ZXh0LWluay1zdWJ0bGUiIC8+CiAgICAgICAgICAgICAgPGlucHV0CiAgICAgICAgICAgICAgICBkZWZhdWx0VmFsdWU9e2FjdGl2ZUZpbHRlcnMucSA/PyAnJ30KICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gdXBkYXRlRmlsdGVyKCdxJywgZS50YXJnZXQudmFsdWUpfQogICAgICAgICAgICAgICAgcGxhY2Vob2xkZXI9IlNlYXJjaCB1bml0IG51bWJlci4uLiIKICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0idy1mdWxsIHBsLTkgcHItNCBweS0yIHRleHQtc20gYmctY2FudmFzIGJvcmRlciBib3JkZXItbGluZSByb3VuZGVkLWxnIGZvY3VzOm91dGxpbmUtbm9uZSBmb2N1czpyaW5nLTIgZm9jdXM6cmluZy1wcmltYXJ5LzUwIHRleHQtaW5rIHBsYWNlaG9sZGVyOnRleHQtaW5rLXN1YnRsZSIKICAgICAgICAgICAgICAvPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPHNlbGVjdAogICAgICAgICAgICAgIHZhbHVlPXthY3RpdmVGaWx0ZXJzLmJ1aWxkaW5nSWQgPz8gJyd9CiAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiB1cGRhdGVGaWx0ZXIoJ2J1aWxkaW5nJywgZS50YXJnZXQudmFsdWUpfQogICAgICAgICAgICAgIGNsYXNzTmFtZT0idGV4dC1zbSBib3JkZXIgYm9yZGVyLWxpbmUgcm91bmRlZC1sZyBweC0zIHB5LTIgYmctY2FudmFzIHRleHQtaW5rIGZvY3VzOm91dGxpbmUtbm9uZSBmb2N1czpyaW5nLTIgZm9jdXM6cmluZy1wcmltYXJ5LzUwIgogICAgICAgICAgICA+CiAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iIj5BbGwgQnVpbGRpbmdzPC9vcHRpb24+CiAgICAgICAgICAgICAge2J1aWxkaW5ncy5tYXAoKGIpID0+ICgKICAgICAgICAgICAgICAgIDxvcHRpb24ga2V5PXtiLmlkfSB2YWx1ZT17Yi5pZH0+CiAgICAgICAgICAgICAgICAgIHtiLm5hbWV9CiAgICAgICAgICAgICAgICA8L29wdGlvbj4KICAgICAgICAgICAgICApKX0KICAgICAgICAgICAgPC9zZWxlY3Q+CiAgICAgICAgICAgIDxzZWxlY3QKICAgICAgICAgICAgICB2YWx1ZT17YWN0aXZlRmlsdGVycy5zdGF0dXMgPz8gJyd9CiAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiB1cGRhdGVGaWx0ZXIoJ3N0YXR1cycsIGUudGFyZ2V0LnZhbHVlKX0KICAgICAgICAgICAgICBjbGFzc05hbWU9InRleHQtc20gYm9yZGVyIGJvcmRlci1saW5lIHJvdW5kZWQtbGcgcHgtMyBweS0yIGJnLWNhbnZhcyB0ZXh0LWluayBmb2N1czpvdXRsaW5lLW5vbmUgZm9jdXM6cmluZy0yIGZvY3VzOnJpbmctcHJpbWFyeS81MCIKICAgICAgICAgICAgPgogICAgICAgICAgICAgIHtTVEFUVVNFUy5tYXAoKHMpID0+ICgKICAgICAgICAgICAgICAgIDxvcHRpb24ga2V5PXtzLnZhbHVlfSB2YWx1ZT17cy52YWx1ZX0+CiAgICAgICAgICAgICAgICAgIHtzLmxhYmVsfQogICAgICAgICAgICAgICAgPC9vcHRpb24+CiAgICAgICAgICAgICAgKSl9CiAgICAgICAgICAgIDwvc2VsZWN0PgogICAgICAgICAgICA8c2VsZWN0CiAgICAgICAgICAgICAgdmFsdWU9e2FjdGl2ZUZpbHRlcnMudHlwZSA/PyAnJ30KICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHVwZGF0ZUZpbHRlcigndHlwZScsIGUudGFyZ2V0LnZhbHVlKX0KICAgICAgICAgICAgICBjbGFzc05hbWU9InRleHQtc20gYm9yZGVyIGJvcmRlci1saW5lIHJvdW5kZWQtbGcgcHgtMyBweS0yIGJnLWNhbnZhcyB0ZXh0LWluayBmb2N1czpvdXRsaW5lLW5vbmUgZm9jdXM6cmluZy0yIGZvY3VzOnJpbmctcHJpbWFyeS81MCIKICAgICAgICAgICAgPgogICAgICAgICAgICAgIHtUWVBFUy5tYXAoKHQpID0+ICgKICAgICAgICAgICAgICAgIDxvcHRpb24ga2V5PXt0LnZhbHVlfSB2YWx1ZT17dC52YWx1ZX0+CiAgICAgICAgICAgICAgICAgIHt0LmxhYmVsfQogICAgICAgICAgICAgICAgPC9vcHRpb24+CiAgICAgICAgICAgICAgKSl9CiAgICAgICAgICAgIDwvc2VsZWN0PgogICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CgogICAgICAgIHtwcm9wZXJ0aWVzLmxlbmd0aCA9PT0gMCA/ICgKICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJwLTEyIHRleHQtY2VudGVyIj4KICAgICAgICAgICAgPEhvbWUgY2xhc3NOYW1lPSJteC1hdXRvIGgtMTAgdy0xMCB0ZXh0LWluay1zdWJ0bGUgbWItMyIgLz4KICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LXNtIHRleHQtaW5rLW11dGVkIj4KICAgICAgICAgICAgICB7T2JqZWN0LnZhbHVlcyhhY3RpdmVGaWx0ZXJzKS5zb21lKEJvb2xlYW4pCiAgICAgICAgICAgICAgICA/ICdObyBwcm9wZXJ0aWVzIG1hdGNoIHRoZXNlIGZpbHRlcnMuJwogICAgICAgICAgICAgICAgOiAnTm8gcHJvcGVydGllcyB5ZXQuIEFkZCB5b3VyIGZpcnN0IHByb3BlcnR5IHRvIGdldCBzdGFydGVkLid9CiAgICAgICAgICAgIDwvcD4KICAgICAgICAgIDwvZGl2PgogICAgICAgICkgOiAoCiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ib3ZlcmZsb3cteC1hdXRvIj4KICAgICAgICAgICAgPHRhYmxlIGNsYXNzTmFtZT0idy1mdWxsIHRleHQtc20iPgogICAgICAgICAgICAgIDx0aGVhZCBjbGFzc05hbWU9ImJnLWNhbnZhcyBib3JkZXItYiBib3JkZXItbGluZSI+CiAgICAgICAgICAgICAgICA8dHI+CiAgICAgICAgICAgICAgICAgIHtbJ1VuaXQnLCAnQnVpbGRpbmcnLCAnT3duZXInLCAnVGVuYW50JywgJ1R5cGUnLCAnUmVudC93aycsICdTdGF0dXMnLCAnTWFuYWdlcicsICcnXS5tYXAoCiAgICAgICAgICAgICAgICAgICAgKGgpID0+ICgKICAgICAgICAgICAgICAgICAgICAgIDx0aAogICAgICAgICAgICAgICAgICAgICAgICBrZXk9e2h9CiAgICAgICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0icHgtNCBweS0zIHRleHQtbGVmdCB0ZXh0LXhzIGZvbnQtc2VtaWJvbGQgdGV4dC1pbmstbXV0ZWQgdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVyIHdoaXRlc3BhY2Utbm93cmFwIgogICAgICAgICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICAgICAgICB7aH0KICAgICAgICAgICAgICAgICAgICAgIDwvdGg+CiAgICAgICAgICAgICAgICAgICAgKQogICAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgICAgPC90cj4KICAgICAgICAgICAgICA8L3RoZWFkPgogICAgICAgICAgICAgIDx0Ym9keSBjbGFzc05hbWU9ImRpdmlkZS15IGRpdmlkZS1saW5lIj4KICAgICAgICAgICAgICAgIHtwcm9wZXJ0aWVzLm1hcCgocCkgPT4gewogICAgICAgICAgICAgICAgICBjb25zdCB0ZW5hbnQgPSBwLmN1cnJlbnRfb2NjdXBhbmN5Py50ZW5hbnQKICAgICAgICAgICAgICAgICAgY29uc3Qgb3duZXIgPSBwLm93bmVyCiAgICAgICAgICAgICAgICAgIGNvbnN0IG93bmVyRGlzcGxheSA9IG93bmVyCiAgICAgICAgICAgICAgICAgICAgPyAob3duZXIuY29tcGFueV9uYW1lID8/IGAke293bmVyLmZpcnN0X25hbWV9ICR7b3duZXIubGFzdF9uYW1lfWApCiAgICAgICAgICAgICAgICAgICAgOiBudWxsCgogICAgICAgICAgICAgICAgICByZXR1cm4gKAogICAgICAgICAgICAgICAgICAgIDx0ciBrZXk9e3AuaWR9IGNsYXNzTmFtZT0iaG92ZXI6YmctY2FudmFzLzUwIj4KICAgICAgICAgICAgICAgICAgICAgIHsvKiBVbml0ICovfQogICAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT0icHgtNCBweS0zIj4KICAgICAgICAgICAgICAgICAgICAgICAgPExpbmsKICAgICAgICAgICAgICAgICAgICAgICAgICBocmVmPXtgL3Byb3BlcnRpZXMvJHtwLmlkfWB9CiAgICAgICAgICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJmb250LXNlbWlib2xkIHRleHQtaW5rIGhvdmVyOnRleHQtcHJpbWFyeSIKICAgICAgICAgICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICAgICAgICAgIHtwLnVuaXRfbnVtYmVyfQogICAgICAgICAgICAgICAgICAgICAgICA8L0xpbms+CiAgICAgICAgICAgICAgICAgICAgICA8L3RkPgoKICAgICAgICAgICAgICAgICAgICAgIHsvKiBCdWlsZGluZyAqL30KICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9InB4LTQgcHktMyI+CiAgICAgICAgICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1pbmsgdGV4dC14cyBmb250LW1lZGl1bSBtYXgtdy1bMTYwcHhdIHRydW5jYXRlIj4KICAgICAgICAgICAgICAgICAgICAgICAgICB7cC5idWlsZGluZz8ubmFtZSA/PyAn4oCUJ30KICAgICAgICAgICAgICAgICAgICAgICAgPC9wPgogICAgICAgICAgICAgICAgICAgICAgICB7cC5idWlsZGluZz8uc3VidXJiICYmICgKICAgICAgICAgICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtaW5rLWZhaW50IHRleHQtWzExcHhdIj57cC5idWlsZGluZy5zdWJ1cmJ9PC9wPgogICAgICAgICAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgICAgICAgICAgPC90ZD4KCiAgICAgICAgICAgICAgICAgICAgICB7LyogT3duZXIgKi99CiAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPSJweC00IHB5LTMiPgogICAgICAgICAgICAgICAgICAgICAgICB7b3duZXJEaXNwbGF5ID8gKAogICAgICAgICAgICAgICAgICAgICAgICAgIDxkaXY+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtaW5rIHRleHQteHMgZm9udC1tZWRpdW0iPntvd25lckRpc3BsYXl9PC9wPgogICAgICAgICAgICAgICAgICAgICAgICAgICAge293bmVyPy5lbWFpbCAmJiAoCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1pbmstZmFpbnQgdGV4dC1bMTFweF0iPntvd25lci5lbWFpbH08L3A+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgICAgICApIDogKAogICAgICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1pbmstZmFpbnQgdGV4dC14cyI+4oCUPC9zcGFuPgogICAgICAgICAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgICAgICAgICAgPC90ZD4KCiAgICAgICAgICAgICAgICAgICAgICB7LyogVGVuYW50ICovfQogICAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT0icHgtNCBweS0zIj4KICAgICAgICAgICAgICAgICAgICAgICAge3RlbmFudCA/ICgKICAgICAgICAgICAgICAgICAgICAgICAgICA8ZGl2PgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPExpbmsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaHJlZj17YC90ZW5hbnRzLyR7dGVuYW50LmlkfWB9CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0idGV4dC1pbmsgdGV4dC14cyBmb250LW1lZGl1bSBob3Zlcjp0ZXh0LXByaW1hcnkiCiAgICAgICAgICAgICAgICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHt0ZW5hbnQuZmlyc3RfbmFtZX0ge3RlbmFudC5sYXN0X25hbWV9CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L0xpbms+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICB7cC5jdXJyZW50X29jY3VwYW5jeT8ubGVhc2VfZW5kICYmICgKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LWluay1mYWludCB0ZXh0LVsxMXB4XSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgRW5kcyB7cC5jdXJyZW50X29jY3VwYW5jeS5sZWFzZV9lbmR9CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICl9CiAgICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgICAgICkgOiAoCiAgICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT17Y24oCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICd0ZXh0LXhzJywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcC5zdGF0dXMgPT09ICdvY2N1cGllZCcgPyAndGV4dC1pbmstbXV0ZWQnIDogJ3RleHQtaW5rLWZhaW50JwogICAgICAgICAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICB7cC5zdGF0dXMgPT09ICdvY2N1cGllZCcgPyAnTm8gdGVuYW50IGxpbmtlZCcgOiAn4oCUJ30KICAgICAgICAgICAgICAgICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgICAgICl9CiAgICAgICAgICAgICAgICAgICAgICA8L3RkPgoKICAgICAgICAgICAgICAgICAgICAgIHsvKiBUeXBlICovfQogICAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT0icHgtNCBweS0zIHRleHQtaW5rLW11dGVkIHRleHQteHMgd2hpdGVzcGFjZS1ub3dyYXAiPgogICAgICAgICAgICAgICAgICAgICAgICB7cC5wcm9wZXJ0eV90eXBlID8/ICfigJQnfQogICAgICAgICAgICAgICAgICAgICAgPC90ZD4KCiAgICAgICAgICAgICAgICAgICAgICB7LyogUmVudCAqL30KICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9InB4LTQgcHktMyBmb250LW1lZGl1bSB0ZXh0LWluayB0ZXh0LXhzIHdoaXRlc3BhY2Utbm93cmFwIj4KICAgICAgICAgICAgICAgICAgICAgICAge3AucmVudF9hbW91bnQgPyBmb3JtYXRDdXJyZW5jeShwLnJlbnRfYW1vdW50KSA6ICfigJQnfQogICAgICAgICAgICAgICAgICAgICAgPC90ZD4KCiAgICAgICAgICAgICAgICAgICAgICB7LyogU3RhdHVzICovfQogICAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT0icHgtNCBweS0zIj4KICAgICAgICAgICAgICAgICAgICAgICAgPFByb3BlcnR5U3RhdHVzQmFkZ2Ugc3RhdHVzPXtwLnN0YXR1c30gLz4KICAgICAgICAgICAgICAgICAgICAgIDwvdGQ+CgogICAgICAgICAgICAgICAgICAgICAgey8qIE1hbmFnZXIgKi99CiAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPSJweC00IHB5LTMgdGV4dC1pbmstbXV0ZWQgdGV4dC14cyB3aGl0ZXNwYWNlLW5vd3JhcCI+CiAgICAgICAgICAgICAgICAgICAgICAgIHtwLmFzc2lnbmVkX21hbmFnZXI/LmZ1bGxfbmFtZSA/PyAn4oCUJ30KICAgICAgICAgICAgICAgICAgICAgIDwvdGQ+CgogICAgICAgICAgICAgICAgICAgICAgey8qIEFjdGlvbnMgKi99CiAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPSJweC00IHB5LTMiPgogICAgICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTAuNSI+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPExpbmsgaHJlZj17YC9wcm9wZXJ0aWVzLyR7cC5pZH1gfT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJwLTEuNSByb3VuZGVkLW1kIHRleHQtaW5rLXN1YnRsZSBob3Zlcjp0ZXh0LWluay1tdXRlZCBob3ZlcjpiZy1jYW52YXMiCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHRpdGxlPSJWaWV3IgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICA8RXllIGNsYXNzTmFtZT0iaC0zLjUgdy0zLjUiIC8+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgICAgICAgICAgICAgICA8L0xpbms+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPExpbmsgaHJlZj17YC9wcm9wZXJ0aWVzLyR7cC5pZH0vZWRpdGB9PgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9InAtMS41IHJvdW5kZWQtbWQgdGV4dC1pbmstc3VidGxlIGhvdmVyOnRleHQtaW5rLW11dGVkIGhvdmVyOmJnLWNhbnZhcyIKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdGl0bGU9IkVkaXQiCiAgICAgICAgICAgICAgICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxQZW5jaWwgY2xhc3NOYW1lPSJoLTMuNSB3LTMuNSIgLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgICAgICAgICAgICAgICAgIDwvTGluaz4KICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgICA8L3RkPgogICAgICAgICAgICAgICAgICAgIDwvdHI+CiAgICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgICAgIH0pfQogICAgICAgICAgICAgIDwvdGJvZHk+CiAgICAgICAgICAgIDwvdGFibGU+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICApfQogICAgICA8L2Rpdj4KCiAgICAgIHt3aXRoVGVuYW50IDwgb2NjdXBpZWQgJiYgb2NjdXBpZWQgPiAwICYmICgKICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtWzEycHhdIHRleHQtaW5rLWZhaW50Ij4KICAgICAgICAgIHtvY2N1cGllZCAtIHdpdGhUZW5hbnR9IG9jY3VwaWVkIHtvY2N1cGllZCAtIHdpdGhUZW5hbnQgPT09IDEgPyAndW5pdCBoYXMnIDogJ3VuaXRzIGhhdmUnfSBubwogICAgICAgICAgdGVuYW50IGxpbmtlZCDigJQgbGluayB0ZW5hbnRzIHZpYSB0aGV7JyAnfQogICAgICAgICAgPExpbmsgaHJlZj0iL3RlbmFudHMiIGNsYXNzTmFtZT0idGV4dC1wcmltYXJ5IGhvdmVyOnVuZGVybGluZSI+CiAgICAgICAgICAgIFRlbmFudHMKICAgICAgICAgIDwvTGluaz57JyAnfQogICAgICAgICAgbW9kdWxlLgogICAgICAgIDwvcD4KICAgICAgKX0KICAgIDwvZGl2PgogICkKfQo=
+'use client'
+
+import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { Plus, Search, Home, Eye, Pencil } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
+import { PropertyStatusBadge } from '@/components/ui/badge'
+import type { PropertyRow } from '@/lib/properties/queries'
+import type { BuildingRow } from '@/lib/buildings/queries'
+
+interface Props {
+  properties: PropertyRow[]
+  buildings: BuildingRow[]
+  error: string | null
+  activeFilters: {
+    q?: string
+    buildingId?: string
+    status?: string
+    type?: string
+  }
+}
+
+const STATUSES = [
+  { value: '', label: 'All Statuses' },
+  { value: 'available', label: 'Available' },
+  { value: 'occupied', label: 'Occupied' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'maintenance_hold', label: 'Maintenance Hold' },
+  { value: 'coming_soon', label: 'Coming Soon' },
+  { value: 'unavailable', label: 'Unavailable' },
+]
+
+const TYPES = [
+  { value: '', label: 'All Types' },
+  { value: 'Studio', label: 'Studio' },
+  { value: '1 Bedroom', label: '1 Bedroom' },
+  { value: '2 Bedroom', label: '2 Bedroom' },
+  { value: '3 Bedroom', label: '3 Bedroom' },
+]
+
+export default function PropertiesClient({ properties, buildings, error, activeFilters }: Props) {
+  const router = useRouter()
+  const pathname = usePathname()
+
+  function updateFilter(key: string, value: string) {
+    const sp = new URLSearchParams()
+    if (activeFilters.q) sp.set('q', activeFilters.q)
+    if (activeFilters.buildingId) sp.set('building', activeFilters.buildingId)
+    if (activeFilters.status) sp.set('status', activeFilters.status)
+    if (activeFilters.type) sp.set('type', activeFilters.type)
+    if (value) sp.set(key, value)
+    else sp.delete(key)
+    const qs = sp.toString()
+    router.push(qs ? `${pathname}?${qs}` : pathname)
+  }
+
+  const occupied = properties.filter((p) => p.status === 'occupied').length
+  const available = properties.filter((p) => p.status === 'available').length
+  const withTenant = properties.filter((p) => !!p.current_occupancy?.tenant).length
+  const withOwner = properties.filter((p) => !!p.owner).length
+
+  const isDbError =
+    !!error &&
+    (error.includes('connect') ||
+      error.includes('relation') ||
+      error.includes('supabase') ||
+      error.includes('NEXT_PUBLIC'))
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-ink">Portfolio</h1>
+          <p className="text-ink-muted text-sm mt-0.5">
+            {properties.length} properties · {occupied} occupied · {available} available
+          </p>
+        </div>
+        <Link
+          href="/properties/new"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          Add Property
+        </Link>
+      </div>
+
+      {error && (
+        <div
+          className={cn(
+            'rounded-xl border px-4 py-3 text-sm',
+            isDbError
+              ? 'border-amber-200 bg-amber-50 text-amber-800'
+              : 'border-red-200 bg-red-50 text-red-700'
+          )}
+        >
+          {isDbError
+            ? 'Database not configured — set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to see live data.'
+            : error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Properties', value: properties.length },
+          { label: 'Occupied', value: occupied },
+          { label: 'Available', value: available },
+          { label: 'With Owner', value: withOwner },
+        ].map((card) => (
+          <div key={card.label} className="rounded-xl border border-line bg-surface shadow-sm p-4">
+            <p className="text-xs text-ink-subtle font-medium">{card.label}</p>
+            <p className="text-2xl font-bold mt-1 text-ink">{card.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-line bg-surface overflow-hidden">
+        <div className="border-b border-line px-4 py-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-subtle" />
+              <input
+                defaultValue={activeFilters.q ?? ''}
+                onChange={(e) => updateFilter('q', e.target.value)}
+                placeholder="Search unit number..."
+                className="w-full pl-9 pr-4 py-2 text-sm bg-canvas border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-ink placeholder:text-ink-subtle"
+              />
+            </div>
+            <select
+              value={activeFilters.buildingId ?? ''}
+              onChange={(e) => updateFilter('building', e.target.value)}
+              className="text-sm border border-line rounded-lg px-3 py-2 bg-canvas text-ink focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">All Buildings</option>
+              {buildings.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={activeFilters.status ?? ''}
+              onChange={(e) => updateFilter('status', e.target.value)}
+              className="text-sm border border-line rounded-lg px-3 py-2 bg-canvas text-ink focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={activeFilters.type ?? ''}
+              onChange={(e) => updateFilter('type', e.target.value)}
+              className="text-sm border border-line rounded-lg px-3 py-2 bg-canvas text-ink focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {properties.length === 0 ? (
+          <div className="p-12 text-center">
+            <Home className="mx-auto h-10 w-10 text-ink-subtle mb-3" />
+            <p className="text-sm text-ink-muted">
+              {Object.values(activeFilters).some(Boolean)
+                ? 'No properties match these filters.'
+                : 'No properties yet. Add your first property to get started.'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-canvas border-b border-line">
+                <tr>
+                  {['Unit', 'Building', 'Owner', 'Tenant', 'Type', 'Rent/wk', 'Status', 'Manager', ''].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-semibold text-ink-muted uppercase tracking-wider whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
+                    )
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {properties.map((p) => {
+                  const tenant = p.current_occupancy?.tenant
+                  const owner = p.owner
+                  const ownerDisplay = owner
+                    ? (owner.company_name ?? `${owner.first_name} ${owner.last_name}`)
+                    : null
+
+                  return (
+                    <tr key={p.id} className="hover:bg-canvas/50">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/properties/${p.id}`}
+                          className="font-semibold text-ink hover:text-primary"
+                        >
+                          {p.unit_number}
+                        </Link>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <p className="text-ink text-xs font-medium max-w-[160px] truncate">
+                          {p.building?.name ?? '—'}
+                        </p>
+                        {p.building?.suburb && (
+                          <p className="text-ink-faint text-[11px]">{p.building.suburb}</p>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {ownerDisplay ? (
+                          <div>
+                            <p className="text-ink text-xs font-medium">{ownerDisplay}</p>
+                            {owner?.email && (
+                              <p className="text-ink-faint text-[11px]">{owner.email}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-ink-faint text-xs">—</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {tenant ? (
+                          <div>
+                            <Link
+                              href={`/tenants/${tenant.id}`}
+                              className="text-ink text-xs font-medium hover:text-primary"
+                            >
+                              {tenant.first_name} {tenant.last_name}
+                            </Link>
+                            {p.current_occupancy?.lease_end && (
+                              <p className="text-ink-faint text-[11px]">
+                                Ends {p.current_occupancy.lease_end}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span
+                            className={cn(
+                              'text-xs',
+                              p.status === 'occupied' ? 'text-ink-muted' : 'text-ink-faint'
+                            )}
+                          >
+                            {p.status === 'occupied' ? 'No tenant linked' : '—'}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3 text-ink-muted text-xs whitespace-nowrap">
+                        {p.property_type ?? '—'}
+                      </td>
+
+                      <td className="px-4 py-3 font-medium text-ink text-xs whitespace-nowrap">
+                        {p.rent_amount ? formatCurrency(p.rent_amount) : '—'}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <PropertyStatusBadge status={p.status} />
+                      </td>
+
+                      <td className="px-4 py-3 text-ink-muted text-xs whitespace-nowrap">
+                        {p.assigned_manager?.full_name ?? '—'}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-0.5">
+                          <Link href={`/properties/${p.id}`}>
+                            <button
+                              className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-canvas"
+                              title="View"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                          </Link>
+                          <Link href={`/properties/${p.id}/edit`}>
+                            <button
+                              className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-canvas"
+                              title="Edit"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {withTenant < occupied && occupied > 0 && (
+        <p className="text-[12px] text-ink-faint">
+          {occupied - withTenant} occupied {occupied - withTenant === 1 ? 'unit has' : 'units have'} no
+          tenant linked — link tenants via the{' '}
+          <Link href="/tenants" className="text-primary hover:underline">
+            Tenants
+          </Link>{' '}
+          module.
+        </p>
+      )}
+    </div>
+  )
+}
