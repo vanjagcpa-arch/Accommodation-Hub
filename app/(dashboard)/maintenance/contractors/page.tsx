@@ -1,11 +1,17 @@
 import { Users } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 import { getContractors } from '@/lib/maintenance/queries'
 import ContractorsClient from './_components/contractors-client'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MaintenanceContractorsPage() {
-  const { contractors, error } = await getContractors()
+  const supabase = await createClient()
+  const [{ contractors, error }, buildingsRes] = await Promise.all([
+    getContractors(),
+    supabase.from('buildings').select('id, name').eq('is_active', true).order('name'),
+  ])
+  const buildings = (buildingsRes.data ?? []) as { id: string; name: string }[]
 
   if (error && (error.includes('connect') || error.includes('relation') || error.includes('supabase'))) {
     return (
@@ -30,5 +36,5 @@ export default async function MaintenanceContractorsPage() {
     )
   }
 
-  return <ContractorsClient contractors={contractors} error={error} />
+  return <ContractorsClient contractors={contractors} error={error} buildings={buildings} />
 }

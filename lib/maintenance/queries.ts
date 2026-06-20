@@ -9,6 +9,9 @@ import type {
   MaintenanceCost,
   MaintenanceStaffProfile,
   MaintenanceStatus,
+  MaintenanceService,
+  MaintenanceInvoice,
+  MaintenanceTravelTime,
 } from '@/types'
 import { OPEN_STATUSES } from './constants'
 
@@ -352,6 +355,9 @@ export interface ContractorRow {
   is_internal: boolean
   color: string | null
   is_active: boolean
+  home_base_building_id: string | null
+  hourly_rate: number | null
+  callout_fee: number | null
   open_jobs: number
 }
 
@@ -361,7 +367,7 @@ export async function getContractors(): Promise<{ contractors: ContractorRow[]; 
     const [staffRes, jobCountRes] = await Promise.all([
       supabase
         .from('maintenance_staff_profiles')
-        .select('id, full_name, email, phone, trade, is_internal, color, is_active')
+        .select('id, full_name, email, phone, trade, is_internal, color, is_active, home_base_building_id, hourly_rate, callout_fee')
         .order('is_internal', { ascending: false })
         .order('full_name'),
       supabase
@@ -434,6 +440,133 @@ export interface MaintenanceAnalytics {
   completedThisMonth: number
   avgDaysToComplete: number | null
   error: string | null
+}
+
+// ── Phase 3 additions ───────────────────────────────────────────────────────
+
+export async function getServices(): Promise<{ services: MaintenanceService[]; error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('maintenance_services')
+      .select('*, category:maintenance_categories(id, name, color)')
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true })
+    if (error) return { services: [], error: error.message }
+    return { services: (data as unknown as MaintenanceService[]) ?? [], error: null }
+  } catch (err) {
+    return { services: [], error: err instanceof Error ? err.message : 'Failed to load services' }
+  }
+}
+
+export async function getInvoices(
+  status?: string,
+): Promise<{ invoices: MaintenanceInvoice[]; error: string | null }> {
+  try {
+    const supabase = await createClient()
+    let q = supabase
+      .from('maintenance_invoices')
+      .select(`
+        id, invoice_number, status, issued_date, due_date, paid_date,
+        subtotal, tax_rate, myob_sync_status, created_at,
+        property:properties(id, unit_number),
+        owner:owners(id, first_name, last_name, company_name)
+      `)
+      .order('created_at', { ascending: false })
+    if (status && status !== 'all') q = q.eq('status', status)
+    const { data, error } = await q
+    if (error) return { invoices: [], error: error.message }
+    return { invoices: (data as unknown as MaintenanceInvoice[]) ?? [], error: null }
+  } catch (err) {
+    return { invoices: [], error: err instanceof Error ? err.message : 'Failed to load invoices' }
+  }
+}
+
+export async function getInvoice(id: string): Promise<{ invoice: MaintenanceInvoice | null; error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('maintenance_invoices')
+      .select(`
+        *,
+        property:properties(id, unit_number),
+        owner:owners(id, first_name, last_name, company_name, email, phone),
+        items:maintenance_invoice_items(
+          *,
+          service:maintenance_services(id, name, unit),
+          job:maintenance_jobs(id, job_number, title)
+        )
+      `)
+      .eq('id', id)
+      .maybeSingle()
+    if (error) return { invoice: null, error: error.message }
+    return { invoice: (data as unknown as MaintenanceInvoice) ?? null, error: null }
+  } catch (err) {
+    return { invoice: null, error: err instanceof Error ? err.message : 'Failed to load invoice' }
+  }
+}
+
+export interface InvoiceFormOptions {
+  properties: { id: string; unit_number: string; building_id: string | null }[]
+  owners: { id: string; first_name: string | null; last_name: string | null; company_name: string | null }[]
+  services: Pick<MaintenanceService, 'id' | 'name' | 'unit' | 'base_price'>[]
+  jobs: { id: string; job_number: string | null; title: string }[]
+}
+
+export async function getInvoiceFormOptions(): Promise<InvoiceFormOptions & { error: string | null }> {
+  const empty: InvoiceFormOptions = { properties: [], owners: [], services: [], jobs: [] }
+  try {
+    const supabase = await createClient()
+    const [properties, owners, services, jobs] = await Promise.all([
+      supabase.from('properties').select('id, unit_number, building_id').eq('is_active', true).order('unit_number'),
+      supabase.from('owners').select('id, first_name, last_name, company_name').eq('is_active', true).order('last_name'),
+      supabase.from('maintenance_services').select('id, name, unit, base_price').eq('is_active', true).order('name'),
+      supabase
+        .from('maintenance_jobs')
+        .select('id, job_number, title')
+        .in('status', ['completed', 'closed'])
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(200),
+    ])
+    return {
+      properties: (properties.data ?? []) as InvoiceFormOptions['properties'],
+      owners: (owners.data ?? []) as InvoiceFormOptions['owners'],
+      services: (services.data ?? []) as InvoiceFormOptions['services'],
+      jobs: (jobs.data ?? []) as InvoiceFormOptions['jobs'],
+      error: null,
+    }
+  } catch (err) {
+    return { ...empty, error: err instanceof Error ? err.message : 'Failed to load options' }
+  }
+}
+
+export async function getTravelTimes(): Promise<{ times: MaintenanceTravelTime[]; error: string | null }> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('maintenance_building_travel_times')
+      .select('*, from_building:buildings!from_building_id(id, name), to_building:buildings!to_building_id(id, name)')
+      .order('travel_minutes', { ascending: true })
+    if (error) return { times: [], error: error.message }
+    return { times: (data as unknown as MaintenanceTravelTime[]) ?? [], error: null }
+  } catch (err) {
+    return { times: [], error: err instanceof Error ? err.message : 'Failed to load travel times' }
+  }
+}
+
+// Returns a map "fromId:toId" → minutes (defaults to 30 if not configured)
+export async function getTravelMap(): Promise<Record<string, number>> {
+  const { times } = await getTravelTimes()
+  const map: Record<string, number> = {}
+  for (const t of times) {
+    map[`${t.from_building_id}:${t.to_building_id}`] = t.travel_minutes
+    // assume symmetric unless explicitly overridden
+    if (!map[`${t.to_building_id}:${t.from_building_id}`]) {
+      map[`${t.to_building_id}:${t.from_building_id}`] = t.travel_minutes
+    }
+  }
+  return map
 }
 
 export async function getMaintenanceAnalytics(): Promise<MaintenanceAnalytics> {

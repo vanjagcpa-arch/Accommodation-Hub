@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getScheduleJobs } from '@/lib/maintenance/queries'
+import { getScheduleJobs, getTravelMap } from '@/lib/maintenance/queries'
 import { ScheduleBoard } from '../_components/schedule-board'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +23,10 @@ export default async function SchedulePage({
   const sp = await searchParams
   const weekParam = Array.isArray(sp.week) ? sp.week[0] : sp.week
   const weekStart = getMondayStr(weekParam)
-  const data = await getScheduleJobs(weekStart)
+  const [data, travelMap] = await Promise.all([
+    getScheduleJobs(weekStart),
+    getTravelMap(),
+  ])
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -49,6 +52,7 @@ export default async function SchedulePage({
           byStaff={data.byStaff}
           unscheduled={data.unscheduled}
           staff={data.staff}
+          travelMap={travelMap}
         />
       )}
     </div>

@@ -477,7 +477,7 @@ export interface DashboardStats {
   electricity_pending: number
 }
 
-// ── Maintenance module entities ─────────────────────────────────
+// ── Maintenance module entities ───────────────────────────────────────────────
 export interface MaintenanceCategory {
   id: string
   company_id: string
@@ -518,10 +518,14 @@ export interface MaintenanceStaffProfile {
   max_jobs_per_day: number | null
   notes: string | null
   is_active: boolean
+  home_base_building_id: string | null
+  hourly_rate: number | null
+  callout_fee: number | null
   created_at: string
   updated_at: string
   // Joined / computed
   open_jobs?: number
+  home_base_building?: Pick<Building, 'id' | 'name'> | null
 }
 
 export interface MaintenanceStatusHistory {
@@ -638,6 +642,85 @@ export interface RecurringMaintenanceOccurrence {
   due_date: string
   generated_at: string
   status: string
+}
+
+// ── Services & Invoicing ────────────────────────────────────────────────────────────
+
+export type MaintenanceServiceUnit =
+  | 'per_item'
+  | 'per_hour'
+  | 'flat_rate'
+  | 'per_visit'
+  | 'per_test'
+  | 'per_point'
+
+export interface MaintenanceService {
+  id: string
+  company_id: string
+  category_id: string | null
+  name: string
+  description: string | null
+  unit: MaintenanceServiceUnit
+  base_price: number
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+  // Joined
+  category?: Pick<MaintenanceCategory, 'id' | 'name' | 'color'> | null
+}
+
+export type MaintenanceInvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'void'
+export type MyobSyncStatus = 'not_synced' | 'pending' | 'synced' | 'failed'
+
+export interface MaintenanceInvoice {
+  id: string
+  company_id: string
+  invoice_number: string
+  property_id: string | null
+  owner_id: string | null
+  status: MaintenanceInvoiceStatus
+  issued_date: string | null
+  due_date: string | null
+  paid_date: string | null
+  subtotal: number
+  tax_rate: number
+  notes: string | null
+  myob_external_id: string | null
+  myob_sync_status: MyobSyncStatus
+  myob_sync_error: string | null
+  myob_synced_at: string | null
+  created_at: string
+  updated_at: string
+  // Joined
+  property?: Pick<Property, 'id' | 'unit_number'> | null
+  owner?: Pick<Owner, 'id' | 'first_name' | 'last_name' | 'company_name'> | null
+  items?: MaintenanceInvoiceItem[]
+}
+
+export interface MaintenanceInvoiceItem {
+  id: string
+  invoice_id: string
+  job_id: string | null
+  service_id: string | null
+  description: string
+  quantity: number
+  unit_price: number
+  created_at: string
+  // Joined
+  service?: Pick<MaintenanceService, 'id' | 'name' | 'unit'> | null
+  job?: Pick<MaintenanceJob, 'id' | 'job_number' | 'title'> | null
+}
+
+export interface MaintenanceTravelTime {
+  id: string
+  company_id: string
+  from_building_id: string
+  to_building_id: string
+  travel_minutes: number
+  // Joined
+  from_building?: Pick<Building, 'id' | 'name'> | null
+  to_building?: Pick<Building, 'id' | 'name'> | null
 }
 
 // Filters for the All Jobs view (typically sourced from URL searchParams)
