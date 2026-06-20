@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/table'
 import { formatCurrency } from '@/lib/utils'
 import type { Property } from '@/types'
+import PageAssistantButton from '@/components/ai/page-assistant-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,6 +103,10 @@ export default async function PropertyDetailPage({
           </div>
           <div className="flex items-center gap-2">
             <PropertyStatusBadge status={property.status} />
+            <PageAssistantButton
+              context={{ page: 'Property Detail', propertyCode: `${(building?.name ?? '').split(' ').map((w: string) => w[0]).join('').toUpperCase() || 'PROP'}/${property.unit_number}`, propertyId: property.id }}
+              suggestedPrompts={['Summarise this property', 'What needs attention?', 'Show open maintenance jobs', 'Recommend next action', 'Who is the current tenant?', 'Explain billing status']}
+            />
             <Link href={`/maintenance/new?property_id=${property.id}`}>
               <Button variant="outline" size="sm">
                 <Wrench className="h-3.5 w-3.5 mr-1" />Log Job

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Plus, Search, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import PageAssistantButton from '@/components/ai/page-assistant-button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { ApplicationStatusBadge } from '@/components/ui/badge'
 import type { Application } from '@/types'
@@ -55,12 +56,18 @@ export default function ApplicationsClient({ applications, buildings, agents, er
             {applications.length} application{applications.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link href="/applications/new">
-          <Button>
-            <Plus className="h-4 w-4" />
-            New Application
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <PageAssistantButton
+            context={{ page: 'Applications' }}
+            suggestedPrompts={['Which applications need review?', 'Which applicants are missing documents?', 'Draft a follow-up email for a missing document', 'Which applications are ready to approve?', 'Summarise active applications']}
+          />
+          <Link href="/applications/new">
+            <Button>
+              <Plus className="h-4 w-4" />
+              New Application
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {error && isDbNotConfigured(error) && (
