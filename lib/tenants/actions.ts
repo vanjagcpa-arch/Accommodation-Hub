@@ -81,7 +81,10 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
     .select('id')
     .single()
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[tenants/createTenant]', error.message, { code: error.code })
+    return { error: error.message }
+  }
 
   await supabase.from('audit_logs').insert({
     company_id: companyId,
@@ -160,7 +163,10 @@ export async function updateTenant(_prev: ActionState, formData: FormData): Prom
     .eq('id', id)
     .eq('company_id', companyId)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[tenants/updateTenant]', error.message, { id, code: error.code })
+    return { error: error.message }
+  }
 
   await supabase.from('audit_logs').insert({
     company_id: companyId,

@@ -122,7 +122,10 @@ export async function createApplication(
     .select('id')
     .single()
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[applications/createApplication]', error.message, { code: error.code })
+    return { error: error.message }
+  }
 
   await supabase.from('audit_logs').insert({
     company_id: companyId,

@@ -14,7 +14,10 @@ export async function toggleBuildingElectricity(
       .update({ manages_electricity: manages, updated_at: new Date().toISOString() })
       .eq('id', buildingId)
 
-    if (error) return { error: error.message }
+    if (error) {
+      console.error('[buildings/toggleBuildingElectricity]', error.message)
+      return { error: error.message }
+    }
 
     await supabase.from('audit_logs').insert({
       action: 'updated',
@@ -28,6 +31,7 @@ export async function toggleBuildingElectricity(
     revalidatePath('/electricity')
     return { error: null }
   } catch (err) {
+    console.error('[buildings/toggleBuildingElectricity]', err instanceof Error ? err.message : err)
     return { error: err instanceof Error ? err.message : 'Failed to update building' }
   }
 }
@@ -43,7 +47,10 @@ export async function toggleBuildingMaintenance(
       .update({ manages_maintenance: manages, updated_at: new Date().toISOString() })
       .eq('id', buildingId)
 
-    if (error) return { error: error.message }
+    if (error) {
+      console.error('[buildings/toggleBuildingMaintenance]', error.message)
+      return { error: error.message }
+    }
 
     await supabase.from('audit_logs').insert({
       action: 'updated',
@@ -57,6 +64,7 @@ export async function toggleBuildingMaintenance(
     revalidatePath('/maintenance')
     return { error: null }
   } catch (err) {
+    console.error('[buildings/toggleBuildingMaintenance]', err instanceof Error ? err.message : err)
     return { error: err instanceof Error ? err.message : 'Failed to update building' }
   }
 }
