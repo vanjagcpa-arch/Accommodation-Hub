@@ -44,11 +44,26 @@ function initials(name: string): string {
   return name.split(' ').map(n => n[0] ?? '').join('').toUpperCase().slice(0, 2)
 }
 
+const DEFAULT_TRAVEL = 30
+
+function getTravelMinutes(travelMap: Record<string, number>, fromId: string | null, toId: string | null): number {
+  if (!fromId || !toId || fromId === toId) return 0
+  return travelMap[`${fromId}:${toId}`] ?? DEFAULT_TRAVEL
+}
+
+function travelColor(minutes: number): string {
+  if (minutes === 0) return 'text-green-600'
+  if (minutes <= 20) return 'text-green-500'
+  if (minutes <= 35) return 'text-amber-500'
+  return 'text-red-500'
+}
+
 interface Props {
   weekStart: string
   byStaff: { staff: ScheduleStaff; jobs: MaintenanceJob[] }[]
   unscheduled: MaintenanceJob[]
   staff: ScheduleStaff[]
+  travelMap?: Record<string, number>
 }
 
 interface AssignModal {
@@ -57,7 +72,7 @@ interface AssignModal {
   date: string
 }
 
-export function ScheduleBoard({ weekStart, byStaff, unscheduled, staff }: Props) {
+export function ScheduleBoard({ weekStart, byStaff, unscheduled, staff, travelMap = {} }: Props) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [modal, setModal] = useState<AssignModal>({ job: null, staffId: '', date: '' })
@@ -284,18 +299,58 @@ export function ScheduleBoard({ weekStart, byStaff, unscheduled, staff }: Props)
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-ink-muted mb-1.5">Staff Member</label>
-                <select
-                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={modal.staffId}
-                  onChange={e => setModal(p => ({ ...p, staffId: e.target.value }))}
-                >
-                  <option value="">Select staff member…</option>
-                  {staff.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name}{s.trade ? ` (${s.trade})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-1.5">
+                  {staff.map(s => {
+                    const jobBuildingId = (modal.job?.building as any)?.id ?? null
+                    const staffJobs = byStaff.find(b => b.staff.id === s.id)?.jobs ?? []
+                    const dateJobs = modal.date
+                      ? staffJobs.filter(j => j.scheduled_date === modal.date)
+                      : []
+                    const lastBuilding = dateJobs.length > 0
+                      ? (dateJobs[dateJobs.length - 1].building as any)?.id ?? null
+                      : null
+                    const travelMins = getTravelMinutes(travelMap, lastBuilding, jobBuildingId)
+                    const uniqueBuildings = new Set(dateJobs.map(j => (j.building as any)?.id).filter(Boolean))
+
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+                          modal.staffId === s.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-line hover:border-primary/30'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="assign_staff"
+                          value={s.id}
+                          checked={modal.staffId === s.id}
+                          onChange={() => setModal(p => ({ ...p, staffId: s.id }))}
+                          className="hidden"
+                        />
+                        <div
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                          style={{ backgroundColor: s.color ?? '#6B7280' }}
+                        >
+                          {initials(s.full_name)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-ink">{s.full_name}</p>
+                          <p className="text-xs text-ink-muted">
+                            {dateJobs.length} job{dateJobs.length !== 1 ? 's' : ''}
+                            {uniqueBuildings.size > 0 ? ` · ${uniqueBuildings.size} building${uniqueBuildings.size !== 1 ? 's' : ''}` : ''}
+                          </p>
+                        </div>
+                        {jobBuildingId && (
+                          <span className={`text-xs font-medium shrink-0 ${travelColor(travelMins)}`}>
+                            {travelMins === 0 ? 'Same building' : `+${travelMins} min travel`}
+                          </span>
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-ink-muted mb-1.5">Scheduled Date</label>
