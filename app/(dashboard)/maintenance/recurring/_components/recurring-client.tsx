@@ -91,7 +91,7 @@ export default function RecurringClient({ rules, buildings, properties, staff, e
     const formData = new FormData(e.currentTarget)
     setFormError(null)
     startTransition(async () => {
-      const res = await createRecurringRule({ error: null, success: false }, formData)
+      const res = await createRecurringRule({ error: null }, formData)
       if (res.error) setFormError(res.error)
       else { setShowModal(false); router.refresh() }
     })

@@ -42,7 +42,7 @@ export default function ContractorsClient({ contractors, error }: Props) {
     const formData = new FormData(e.currentTarget)
     setFormError(null)
     startTransition(async () => {
-      const res = await createContractor({ error: null, success: false }, formData)
+      const res = await createContractor({ error: null }, formData)
       if (res.error) setFormError(res.error)
       else { setShowModal(false); router.refresh() }
     })
