@@ -1,32 +1,60 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-const mockTenants = [
-  { id: 't1', first_name: 'Wei', last_name: 'Zhang', email: 'wei.zhang@student.unimelb.edu.au', phone: '0412 345 678', university: 'University of Melbourne', property: 'Unit 101', building: 'Parkview Apartments' },
-  { id: 't2', first_name: 'Priya', last_name: 'Sharma', email: 'priya.sharma@student.rmit.edu.au', phone: '0423 456 789', university: 'RMIT University', property: 'Unit 1A', building: 'University Gardens' },
-  { id: 't3', first_name: 'Carlos', last_name: 'Rodriguez', email: 'carlos.r@student.monash.edu', phone: '0434 567 890', university: 'Monash University', property: 'Unit 501', building: 'Monash Towers' },
-]
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const search = searchParams.get('search')
+  try {
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search')
 
-  let filtered = mockTenants
-  if (search) {
-    filtered = filtered.filter(t =>
-      `${t.first_name} ${t.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-      t.email.toLowerCase().includes(search.toLowerCase())
-    )
+    const supabase = await createClient()
+    let query = supabase
+      .from('tenants')
+      .select('id, first_name, last_name, email, phone, university, is_active')
+      .eq('is_active', true)
+      .order('last_name')
+
+    if (search) {
+      const term = search.replace(/[%,]/g, ' ').trim()
+      if (term) {
+        query = query.or(
+          `first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`
+        )
+      }
+    }
+
+    const { data, error } = await query.limit(200)
+    if (error) {
+      console.error('[api/tenants GET]', error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ data: data ?? [], total: data?.length ?? 0 })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to load tenants'
+    console.error('[api/tenants GET]', msg)
+    return NextResponse.json({ error: msg }, { status: 503 })
   }
-
-  // TODO: Replace with Supabase query:
-  // const supabase = await createClient()
-  // const { data, error } = await supabase.from('tenants').select('*, occupancies!inner(property_id, properties(unit_number, buildings(name)))')
-
-  return NextResponse.json({ data: filtered, total: filtered.length })
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  // TODO: Insert into Supabase
-  return NextResponse.json({ data: { id: 'new-tenant', ...body }, message: 'Tenant created' }, { status: 201 })
+  try {
+    const supabase = await createClient()
+    const body = await request.json()
+    const { data, error } = await supabase
+      .from('tenants')
+      .insert(body)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[api/tenants POST]', error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ data }, { status: 201 })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to create tenant'
+    console.error('[api/tenants POST]', msg)
+    return NextResponse.json({ error: msg }, { status: 503 })
+  }
 }

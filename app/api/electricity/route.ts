@@ -1,38 +1,65 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-const mockAccounts = [
-  { id: 'e1', tenant: 'Wei Zhang', property: 'Unit 101', building: 'Parkview Apts', status: 'active', tenant_code: 'EZ-10001', provider: 'Energy Australia', move_in_date: '2026-01-15', consent_given: true },
-  { id: 'e2', tenant: 'Priya Sharma', property: 'Unit 1A', building: 'University Gardens', status: 'active', tenant_code: 'EZ-10002', provider: 'Energy Australia', move_in_date: '2026-02-01', consent_given: true },
-  { id: 'e3', tenant: 'Carlos Rodriguez', property: 'Unit 501', building: 'Monash Towers', status: 'pending_consent', tenant_code: null, provider: null, move_in_date: '2026-03-01', consent_given: false },
-]
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const status = searchParams.get('status')
-  const format = searchParams.get('format')
+  try {
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    const format = searchParams.get('format')
 
-  let filtered = mockAccounts
-  if (status) filtered = filtered.filter(a => a.status === status)
+    const supabase = await createClient()
+    let query = supabase
+      .from('electricity_accounts')
+      .select(`
+        id, status, tenant_code, provider, account_number, move_in_date, move_out_date, consent_given,
+        property:properties(id, unit_number, building:buildings(id, name)),
+        tenant:tenants(id, first_name, last_name, email)
+      `)
+      .order('created_at', { ascending: false })
 
-  // Ezidebit CSV export
-  if (format === 'ezidebit_csv') {
-    const active = mockAccounts.filter(a => a.status === 'active' && a.tenant_code)
-    const csvRows = [
-      ['TenantCode', 'TenantName', 'Property', 'Building', 'Provider', 'MoveInDate'].join(','),
-      ...active.map(a => [a.tenant_code, a.tenant, a.property, a.building, a.provider ?? '', a.move_in_date ?? ''].join(',')),
-    ]
-    const csv = csvRows.join('\n')
-    return new NextResponse(csv, {
-      headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="ezidebit-export-${new Date().toISOString().split('T')[0]}.csv"`,
-      },
-    })
+    if (status) query = query.eq('status', status)
+
+    const { data, error } = await query.limit(500)
+    if (error) {
+      console.error('[api/electricity GET]', error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const accounts = data ?? []
+
+    if (format === 'ezidebit_csv') {
+      const active = accounts.filter(
+        (a) => a.status === 'active' && a.tenant_code
+      )
+      const csvRows = [
+        ['TenantCode', 'TenantName', 'Property', 'Building', 'Provider', 'MoveInDate'].join(','),
+        ...active.map((a) => {
+          const t = a.tenant as unknown as { first_name: string; last_name: string } | null
+          const p = a.property as unknown as { unit_number: string; building: { name: string } | null } | null
+          return [
+            a.tenant_code,
+            t ? `${t.first_name} ${t.last_name}` : '',
+            p?.unit_number ?? '',
+            p?.building?.name ?? '',
+            a.provider ?? '',
+            a.move_in_date ?? '',
+          ].join(',')
+        }),
+      ]
+      return new NextResponse(csvRows.join('\n'), {
+        headers: {
+          'Content-Type': 'text/csv',
+          'Content-Disposition': `attachment; filename="ezidebit-export-${new Date().toISOString().split('T')[0]}.csv"`,
+        },
+      })
+    }
+
+    return NextResponse.json({ data: accounts, total: accounts.length })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to load electricity accounts'
+    console.error('[api/electricity GET]', msg)
+    return NextResponse.json({ error: msg }, { status: 503 })
   }
-
-  // TODO: Replace with Supabase query:
-  // const supabase = await createClient()
-  // const { data, error } = await supabase.from('electricity_accounts').select('*, properties(unit_number, buildings(name)), tenants(first_name, last_name)')
-
-  return NextResponse.json({ data: filtered, total: filtered.length })
 }
