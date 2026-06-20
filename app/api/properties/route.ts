@@ -1,34 +1,55 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-const mockProperties = [
-  { id: 'p1', unit_number: '101', building_id: 'b1', building_name: 'Parkview Apartments', property_type: 'Studio', bedrooms: 0, bathrooms: 1, rent_amount: 1650, status: 'occupied' },
-  { id: 'p2', unit_number: '102', building_id: 'b1', building_name: 'Parkview Apartments', property_type: 'Studio', bedrooms: 0, bathrooms: 1, rent_amount: 1650, status: 'available', available_date: '2026-07-01' },
-  { id: 'p3', unit_number: '201', building_id: 'b1', building_name: 'Parkview Apartments', property_type: '1 Bedroom', bedrooms: 1, bathrooms: 1, rent_amount: 2100, status: 'occupied' },
-  { id: 'p4', unit_number: '1B', building_id: 'b2', building_name: 'University Gardens', property_type: 'Studio', bedrooms: 0, bathrooms: 1, rent_amount: 1450, status: 'available', available_date: '2026-07-01' },
-  { id: 'p5', unit_number: 'G01', building_id: 'b4', building_name: 'Brunswick Studios', property_type: 'Studio', bedrooms: 0, bathrooms: 1, rent_amount: 1200, status: 'available', available_date: '2026-06-25' },
-]
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const status = searchParams.get('status')
-  const buildingId = searchParams.get('building_id')
+  try {
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    const buildingId = searchParams.get('building_id')
 
-  let filtered = mockProperties
-  if (status) filtered = filtered.filter(p => p.status === status)
-  if (buildingId) filtered = filtered.filter(p => p.building_id === buildingId)
+    const supabase = await createClient()
+    let query = supabase
+      .from('properties')
+      .select('id, unit_number, building_id, property_type, bedrooms, bathrooms, rent_amount, status, available_date')
+      .eq('is_active', true)
+      .order('unit_number')
 
-  // TODO: Replace with Supabase query:
-  // const supabase = await createClient()
-  // let query = supabase.from('properties').select('*, buildings(name), profiles!assigned_manager_id(full_name)')
-  // if (status) query = query.eq('status', status)
-  // if (buildingId) query = query.eq('building_id', buildingId)
-  // const { data, error } = await query
+    if (status) query = query.eq('status', status)
+    if (buildingId) query = query.eq('building_id', buildingId)
 
-  return NextResponse.json({ data: filtered, total: filtered.length })
+    const { data, error } = await query.limit(500)
+    if (error) {
+      console.error('[api/properties GET]', error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ data: data ?? [], total: data?.length ?? 0 })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to load properties'
+    console.error('[api/properties GET]', msg)
+    return NextResponse.json({ error: msg }, { status: 503 })
+  }
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  // TODO: Insert into Supabase
-  return NextResponse.json({ data: { id: 'new-property', ...body }, message: 'Property created' }, { status: 201 })
+  try {
+    const supabase = await createClient()
+    const body = await request.json()
+    const { data, error } = await supabase
+      .from('properties')
+      .insert(body)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[api/properties POST]', error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ data }, { status: 201 })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to create property'
+    console.error('[api/properties POST]', msg)
+    return NextResponse.json({ error: msg }, { status: 503 })
+  }
 }
