@@ -75,7 +75,10 @@ export async function createMaintenanceJob(_prev: ActionState, formData: FormDat
     .select('id')
     .single()
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[maintenance/createMaintenanceJob]', error.message, { code: error.code })
+    return { error: error.message }
+  }
 
   await supabase.from('audit_logs').insert({
     company_id: companyId,
@@ -99,7 +102,10 @@ export async function updateJobStatus(jobId: string, status: MaintenanceStatus, 
     .update({ status, updated_by: user.id })
     .eq('id', jobId)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[maintenance/updateJobStatus]', error.message, { jobId, status })
+    return { error: error.message }
+  }
 
   if (note?.trim()) {
     const { data: latest } = await supabase
@@ -224,7 +230,10 @@ export async function completeJob(jobId: string, completionNotes: string): Promi
     })
     .eq('id', jobId)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[maintenance/completeJob]', error.message, { jobId })
+    return { error: error.message }
+  }
 
   if (companyId) {
     await supabase.from('audit_logs').insert({
