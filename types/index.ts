@@ -90,6 +90,22 @@ export interface Company {
   updated_by: string | null
 }
 
+export interface Owner {
+  id: string
+  company_id: string | null
+  first_name: string
+  last_name: string
+  email: string | null
+  phone: string | null
+  company_name: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
 export interface Profile {
   id: string
   email: string
@@ -151,6 +167,7 @@ export interface Property {
   notes: string | null
   internal_notes: string | null
   agent_visible: boolean
+  owner_id?: string | null
   assigned_manager_id: string | null
   reapit_external_id: string | null
   listonce_external_id: string | null
@@ -163,6 +180,7 @@ export interface Property {
   // Joined fields
   building?: Building | null
   assigned_manager?: Profile | null
+  owner?: Owner | null
   current_occupancy?: Occupancy | null
 }
 

@@ -15,8 +15,8 @@ import { OPEN_STATUSES } from './constants'
 const JOB_LIST_SELECT = `
   *,
   building:buildings(id, name),
-  property:properties(id, unit_number),
-  tenant:tenants(id, first_name, last_name),
+  property:properties(id, unit_number, owner:owners!owner_id(id, first_name, last_name, email, company_name)),
+  tenant:tenants(id, first_name, last_name, email, phone),
   category:maintenance_categories(id, name, color),
   assigned_staff:maintenance_staff_profiles(id, full_name, color)
 `
@@ -24,7 +24,7 @@ const JOB_LIST_SELECT = `
 const JOB_DETAIL_SELECT = `
   *,
   building:buildings(id, name, address),
-  property:properties(id, unit_number, property_type),
+  property:properties(id, unit_number, property_type, owner:owners!owner_id(id, first_name, last_name, email, phone, company_name)),
   tenant:tenants(id, first_name, last_name, email, phone),
   category:maintenance_categories(id, name, color),
   assigned_staff:maintenance_staff_profiles(id, full_name, trade, phone, email, color)
