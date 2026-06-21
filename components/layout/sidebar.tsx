@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Hotel, ChevronsUpDown, LogOut, Sparkles, ChevronRight } from 'lucide-react'
 import { navGroups, isNavItemActive, isGroupActive } from '@/lib/navigation'
+import { canAccessModule } from '@/lib/permissions'
 import { logout } from '@/app/login/actions'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -46,10 +47,11 @@ interface SidebarProps {
 export function Sidebar({ companyName, userName, userRole, appCount, mainCount }: SidebarProps) {
   const pathname = usePathname()
   const counts = { appCount, mainCount }
+  const visibleGroups = navGroups.filter(g => canAccessModule(userRole, g.module))
 
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>()
-    navGroups.forEach(group => {
+    visibleGroups.forEach(group => {
       if (isGroupActive(pathname, group)) initial.add(group.label)
     })
     return initial
@@ -87,7 +89,7 @@ export function Sidebar({ companyName, userName, userRole, appCount, mainCount }
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-3">
         <div className="space-y-0.5">
-          {navGroups.map((group) => {
+          {visibleGroups.map((group) => {
             const isOpen = openGroups.has(group.label)
             const groupActive = isGroupActive(pathname, group)
 

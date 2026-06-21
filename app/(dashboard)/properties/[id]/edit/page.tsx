@@ -11,7 +11,7 @@ async function getProperty(id: string) {
     const supabase = await createClient()
     const { data } = await supabase
       .from('properties')
-      .select('id, building_id, unit_number, property_type, bedrooms, bathrooms, floor_level, size_sqm, rent_amount, bond_amount, status, available_date, features, notes, internal_notes, agent_visible, assigned_manager_id, reapit_external_id, listonce_external_id, ezidebit_code')
+      .select('id, building_id, unit_number, property_type, bedrooms, bathrooms, floor_level, size_sqm, rent_amount, bond_amount, status, available_date, features, notes, internal_notes, agent_visible, owner_id, assigned_manager_id, reapit_external_id, listonce_external_id, ezidebit_code')
       .eq('id', id)
       .maybeSingle()
     return data
@@ -20,36 +20,45 @@ async function getProperty(id: string) {
   }
 }
 
-async function getBuildings() {
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase
-      .from('buildings')
-      .select('id, name, address, suburb')
-      .eq('is_active', true)
-      .order('name')
-    return (data ?? []) as { id: string; name: string; address: string | null; suburb: string | null }[]
-  } catch {
-    return []
-  }
-}
-
-async function getManagers() {
+async function getFormData() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return []
-    const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle()
-    if (!profile?.company_id) return []
-    const { data } = await supabase
+    if (!user) return { buildings: [], managers: [], owners: [] }
+
+    const { data: profile } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name')
-      .eq('company_id', profile.company_id)
-      .eq('is_active', true)
-      .order('first_name')
-    return (data ?? []) as { id: string; first_name: string; last_name: string }[]
+      .select('company_id')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!profile?.company_id) return { buildings: [], managers: [], owners: [] }
+
+    const [buildingsRes, managersRes, ownersRes] = await Promise.all([
+      supabase
+        .from('buildings')
+        .select('id, name, address, suburb')
+        .eq('is_active', true)
+        .order('name'),
+      supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('company_id', profile.company_id)
+        .eq('is_active', true)
+        .order('full_name'),
+      supabase
+        .from('owners')
+        .select('id, first_name, last_name, company_name')
+        .eq('is_active', true)
+        .order('last_name'),
+    ])
+
+    return {
+      buildings: (buildingsRes.data ?? []) as { id: string; name: string; address: string | null; suburb: string | null }[],
+      managers: (managersRes.data ?? []) as { id: string; full_name: string | null }[],
+      owners: (ownersRes.data ?? []) as { id: string; first_name: string; last_name: string; company_name: string | null }[],
+    }
   } catch {
-    return []
+    return { buildings: [], managers: [], owners: [] }
   }
 }
 
@@ -59,7 +68,10 @@ export default async function EditPropertyPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [property, buildings, managers] = await Promise.all([getProperty(id), getBuildings(), getManagers()])
+  const [property, { buildings, managers, owners }] = await Promise.all([
+    getProperty(id),
+    getFormData(),
+  ])
   if (!property) notFound()
 
   return (
@@ -80,7 +92,7 @@ export default async function EditPropertyPage({
         <p className="text-ink-muted text-sm mt-0.5">Unit {property.unit_number}</p>
       </div>
 
-      <EditPropertyForm property={property} buildings={buildings} managers={managers} />
+      <EditPropertyForm property={property} buildings={buildings} managers={managers} owners={owners} />
     </div>
   )
 }
