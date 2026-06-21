@@ -1,148 +1,268 @@
-import { Plus, Search, Mail, Phone, Building2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+export const dynamic = 'force-dynamic'
+
+import { Plus, Mail, Phone, Building2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import Link from 'next/link'
 
-const agents = [
-  { id: 'ag1', name: 'Emma Davis', agency: 'CBD Referrals', type: 'external', email: 'emma.davis@cbdreferrals.com.au', phone: '03 9001 2345', buildings: ['Parkview Apts', 'University Gardens', 'Docklands Point'], status: 'active', applications: 12, commission: 8.5 },
-  { id: 'ag2', name: 'Michael Brown', agency: 'Suburban Lets', type: 'referral', email: 'm.brown@suburbanlets.com.au', phone: '03 9002 3456', buildings: ['Hawthorn Court', 'Brunswick Studios'], status: 'active', applications: 7, commission: 7.0 },
-  { id: 'ag3', name: 'Rachel Wong', agency: 'StudyLink Realty', type: 'external', email: 'rachel.wong@studylink.com.au', phone: '03 9003 4567', buildings: ['University Gardens', 'Monash Towers', 'Footscray Heights'], status: 'active', applications: 19, commission: 8.0 },
-  { id: 'ag4', name: 'David Park', agency: 'Marine Lets', type: 'referral', email: 'd.park@marinlets.com.au', phone: '03 9004 5678', buildings: ['Docklands Point', 'St Kilda Residences'], status: 'active', applications: 5, commission: 6.5 },
-  { id: 'ag5', name: 'Sarah Chen', agency: 'Metro Student Housing', type: 'internal', email: 'sarah.chen@metrostudenthousing.com.au', phone: '03 9000 1234', buildings: ['Parkview Apts', 'Flinders House', 'Docklands Point'], status: 'active', applications: 28, commission: 0 },
-  { id: 'ag6', name: 'James Mitchell', agency: 'Metro Student Housing', type: 'internal', email: 'j.mitchell@metrostudenthousing.com.au', phone: '03 9000 2345', buildings: ['University Gardens', 'Fitzroy Terrace'], status: 'active', applications: 15, commission: 0 },
-  { id: 'ag7', name: 'Lisa Nguyen', agency: 'Pacific Connect', type: 'referral', email: 'lisa@pacificconnect.com.au', phone: '03 9005 6789', buildings: ['Monash Towers'], status: 'inactive', applications: 3, commission: 7.5 },
-]
-
-const typeConfig = {
-  internal: { label: 'Internal', variant: 'success' as const },
-  external: { label: 'External', variant: 'info' as const },
-  referral: { label: 'Referral', variant: 'purple' as const },
+interface AgentRow {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  agency_name: string | null
+  agent_type: string
+  email: string | null
+  phone: string | null
+  commission_rate: number | null
+  is_active: boolean
+  building_names: string[]
+  application_count: number
 }
 
-export default function AgentsPage() {
+async function getAgents(): Promise<{ agents: AgentRow[]; error: string | null }> {
+  try {
+    const supabase = await createClient()
+
+    const [agentsRes, permsRes, appsRes] = await Promise.all([
+      supabase
+        .from('agents')
+        .select('id, first_name, last_name, agency_name, agent_type, email, phone, commission_rate, is_active')
+        .order('last_name'),
+      supabase
+        .from('agent_building_permissions')
+        .select('agent_id, building:buildings(name)'),
+      supabase
+        .from('applications')
+        .select('agent_id')
+        .not('agent_id', 'is', null),
+    ])
+
+    if (agentsRes.error) return { agents: [], error: agentsRes.error.message }
+
+    const buildingMap: Record<string, string[]> = {}
+    for (const perm of permsRes.data ?? []) {
+      const aid = perm.agent_id as string
+      const name = (perm.building as unknown as { name: string } | null)?.name
+      if (name) {
+        if (!buildingMap[aid]) buildingMap[aid] = []
+        buildingMap[aid].push(name)
+      }
+    }
+
+    const appCountMap: Record<string, number> = {}
+    for (const app of appsRes.data ?? []) {
+      const aid = app.agent_id as string
+      appCountMap[aid] = (appCountMap[aid] ?? 0) + 1
+    }
+
+    const agents: AgentRow[] = (agentsRes.data ?? []).map((a) => ({
+      id: a.id,
+      first_name: a.first_name,
+      last_name: a.last_name,
+      agency_name: a.agency_name,
+      agent_type: a.agent_type,
+      email: a.email,
+      phone: a.phone,
+      commission_rate: a.commission_rate,
+      is_active: a.is_active,
+      building_names: buildingMap[a.id] ?? [],
+      application_count: appCountMap[a.id] ?? 0,
+    }))
+
+    return { agents, error: null }
+  } catch (err) {
+    return { agents: [], error: err instanceof Error ? err.message : 'Failed to load agents' }
+  }
+}
+
+const TYPE_VARIANT: Record<string, 'success' | 'info' | 'purple' | 'gray'> = {
+  internal: 'success',
+  external: 'info',
+  referral: 'purple',
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  internal: 'Internal',
+  external: 'External',
+  referral: 'Referral',
+}
+
+type PageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function AgentsPage({ searchParams }: PageProps) {
+  const sp = await searchParams
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+  const filterType = first(sp.type) ?? ''
+  const filterStatus = first(sp.status) ?? ''
+
+  const { agents: allAgents, error } = await getAgents()
+
+  const agents = allAgents.filter((a) => {
+    if (filterType && a.agent_type !== filterType) return false
+    if (filterStatus === 'active' && !a.is_active) return false
+    if (filterStatus === 'inactive' && a.is_active) return false
+    return true
+  })
+
+  const activeCount = allAgents.filter((a) => a.is_active).length
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Agents</h1>
-          <p className="text-slate-500 text-sm mt-0.5">
-            {agents.filter(a => a.status === 'active').length} active agents
-          </p>
+          <h1 className="text-2xl font-bold text-ink">Agents</h1>
+          <p className="text-ink-muted text-sm mt-0.5">{activeCount} active agents</p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4" />
-          Add Agent
-        </Button>
+        <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors">
+          <Plus className="h-4 w-4" /> Add Agent
+        </button>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{error}</div>
+      )}
 
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search agents..."
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <select className="text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
+          <form method="get" className="flex flex-wrap gap-3">
+            <select
+              name="type"
+              defaultValue={filterType}
+              className="text-sm border border-line-strong rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
               <option value="">All Types</option>
               <option value="internal">Internal</option>
               <option value="external">External</option>
               <option value="referral">Referral</option>
             </select>
-            <select className="text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
+            <select
+              name="status"
+              defaultValue={filterStatus}
+              className="text-sm border border-line-strong rounded-lg px-3 py-2 bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
               <option value="">All Statuses</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-          </div>
+            <button
+              type="submit"
+              className="text-sm px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+            >
+              Filter
+            </button>
+            {(filterType || filterStatus) && (
+              <Link
+                href="/agents"
+                className="text-sm px-4 py-2 rounded-lg border border-line text-ink-muted hover:text-ink transition-colors"
+              >
+                Clear
+              </Link>
+            )}
+          </form>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Agent</TableHead>
-                <TableHead>Agency</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Permitted Buildings</TableHead>
-                <TableHead>Applications</TableHead>
-                <TableHead>Commission</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {agents.map((agent) => {
-                const typeConf = typeConfig[agent.type as keyof typeof typeConfig]
-                return (
-                  <TableRow key={agent.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-xs font-semibold text-green-700">
-                          {agent.name.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <span className="font-medium text-slate-900 text-sm">{agent.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-600">{agent.agency}</TableCell>
-                    <TableCell>
-                      <Badge variant={typeConf.variant}>{typeConf.label}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                          <Mail className="h-3 w-3 text-slate-400" />
-                          <a href={`mailto:${agent.email}`} className="hover:text-green-600 truncate max-w-[160px]">{agent.email}</a>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <Phone className="h-3 w-3 text-slate-400" />
-                          {agent.phone}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-0.5">
-                        {agent.buildings.slice(0, 2).map(b => (
-                          <div key={b} className="flex items-center gap-1 text-xs text-slate-600">
-                            <Building2 className="h-3 w-3 text-slate-400" />
-                            {b}
+          {agents.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-sm text-ink-muted">No agents found.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Agent</TableHead>
+                  <TableHead>Agency</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Permitted Buildings</TableHead>
+                  <TableHead>Applications</TableHead>
+                  <TableHead>Commission</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {agents.map((agent) => {
+                  const fullName = [agent.first_name, agent.last_name].filter(Boolean).join(' ') || 'Unknown'
+                  const initials = [agent.first_name?.[0], agent.last_name?.[0]].filter(Boolean).join('').toUpperCase() || '?'
+                  return (
+                    <TableRow key={agent.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary-soft flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                            {initials}
                           </div>
-                        ))}
-                        {agent.buildings.length > 2 && (
-                          <span className="text-xs text-slate-400">+{agent.buildings.length - 2} more</span>
+                          <span className="font-medium text-ink text-sm">{fullName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-ink-muted">
+                        {agent.agency_name ?? '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={TYPE_VARIANT[agent.agent_type] ?? 'gray'}>
+                          {TYPE_LABEL[agent.agent_type] ?? agent.agent_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-0.5">
+                          {agent.email && (
+                            <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                              <Mail className="h-3 w-3 text-ink-faint" />
+                              <a href={`mailto:${agent.email}`} className="hover:text-primary truncate max-w-[160px]">
+                                {agent.email}
+                              </a>
+                            </div>
+                          )}
+                          {agent.phone && (
+                            <div className="flex items-center gap-1.5 text-xs text-ink-subtle">
+                              <Phone className="h-3 w-3 text-ink-faint" />
+                              {agent.phone}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {agent.building_names.length === 0 ? (
+                          <span className="text-xs text-ink-faint">None</span>
+                        ) : (
+                          <div className="flex flex-col gap-0.5">
+                            {agent.building_names.slice(0, 2).map((b) => (
+                              <div key={b} className="flex items-center gap-1 text-xs text-ink-muted">
+                                <Building2 className="h-3 w-3 text-ink-faint" />
+                                {b}
+                              </div>
+                            ))}
+                            {agent.building_names.length > 2 && (
+                              <span className="text-xs text-ink-faint">
+                                +{agent.building_names.length - 2} more
+                              </span>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-semibold text-slate-900">{agent.applications}</span>
-                    </TableCell>
-                    <TableCell>
-                      {agent.commission > 0 ? (
-                        <span className="text-sm text-slate-700">{agent.commission}%</span>
-                      ) : (
-                        <span className="text-xs text-slate-400">N/A</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={agent.status === 'active' ? 'success' : 'gray'}>
-                        {agent.status === 'active' ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">Edit</Button>
-                        <Button variant="ghost" size="sm">Permissions</Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold text-ink">{agent.application_count}</span>
+                      </TableCell>
+                      <TableCell>
+                        {agent.commission_rate != null && agent.commission_rate > 0 ? (
+                          <span className="text-sm text-ink-muted">{agent.commission_rate}%</span>
+                        ) : (
+                          <span className="text-xs text-ink-faint">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={agent.is_active ? 'success' : 'gray'}>
+                          {agent.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

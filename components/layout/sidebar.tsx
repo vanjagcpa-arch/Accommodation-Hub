@@ -6,9 +6,46 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Hotel, ChevronsUpDown, LogOut, Sparkles, ChevronRight } from 'lucide-react'
 import { navGroups, isNavItemActive, isGroupActive } from '@/lib/navigation'
+import { logout } from '@/app/login/actions'
 
-export function Sidebar() {
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: 'Super Admin',
+  admin: 'Administrator',
+  internal_manager: 'Property Manager',
+  external_manager: 'External Manager',
+  referral_agent: 'Referral Agent',
+  maintenance_staff: 'Maintenance Staff',
+  read_only: 'View Only',
+}
+
+function formatRole(role: string): string {
+  return ROLE_LABELS[role] ?? role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+// Which href gets which dynamic badge count
+const BADGE_MAP: Record<string, 'appCount' | 'mainCount'> = {
+  '/applications': 'appCount',
+  '/maintenance': 'mainCount',
+}
+
+interface SidebarProps {
+  companyName: string
+  userName: string
+  userRole: string
+  appCount: number
+  mainCount: number
+}
+
+export function Sidebar({ companyName, userName, userRole, appCount, mainCount }: SidebarProps) {
   const pathname = usePathname()
+  const counts = { appCount, mainCount }
 
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>()
@@ -37,7 +74,7 @@ export function Sidebar() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-ink leading-tight">
-              Metro Housing
+              {companyName}
             </p>
             <p className="truncate text-[11px] text-ink-subtle leading-tight">
               Operations workspace
@@ -84,6 +121,10 @@ export function Sidebar() {
                   <div className="ml-5 mt-0.5 border-l border-line pl-2 pb-1 space-y-0.5">
                     {group.items.map((item) => {
                       const itemActive = isNavItemActive(pathname, item.href, item.exact)
+                      const dynamicBadgeKey = BADGE_MAP[item.href]
+                      const badgeValue = dynamicBadgeKey ? counts[dynamicBadgeKey] : undefined
+                      const showBadge = badgeValue !== undefined && badgeValue > 0
+
                       return (
                         <Link
                           key={item.name}
@@ -104,7 +145,7 @@ export function Sidebar() {
                             )}
                           />
                           <span className="flex-1 truncate">{item.name}</span>
-                          {item.badge !== undefined && (
+                          {showBadge && (
                             <span
                               className={cn(
                                 'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold',
@@ -113,7 +154,7 @@ export function Sidebar() {
                                   : 'bg-surface-muted text-ink-subtle group-hover:bg-line'
                               )}
                             >
-                              {item.badge}
+                              {badgeValue}
                             </span>
                           )}
                         </Link>
@@ -152,17 +193,17 @@ export function Sidebar() {
       <div className="border-t border-line px-3 py-2.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
-            AM
+            {getInitials(userName)}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-ink leading-tight">
-              Alex Manager
+              {userName}
             </p>
             <p className="truncate text-[11px] text-ink-subtle leading-tight">
-              Administrator
+              {formatRole(userRole)}
             </p>
           </div>
-          <form action="/api/auth/logout" method="post" className="shrink-0">
+          <form action={logout} className="shrink-0">
             <button
               type="submit"
               title="Sign out"
