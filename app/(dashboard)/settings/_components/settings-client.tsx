@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, Save, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Building2, Save, Plus, Pencil } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,7 +36,7 @@ const roleLabels: Record<string, { label: string; variant: 'success' | 'info' | 
   read_only: { label: 'Read Only', variant: 'gray' },
 }
 
-const settingsTabs = ['General', 'Users & Roles', 'Companies', 'Notifications']
+const tabs = ['General', 'Users & Roles', 'Companies', 'Notifications']
 
 export default function SettingsClient({
   users,
@@ -54,19 +54,19 @@ export default function SettingsClient({
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Manage your platform configuration</p>
+        <h1 className="text-2xl font-bold text-ink">Settings</h1>
+        <p className="text-ink-muted text-sm mt-0.5">Manage your platform configuration</p>
       </div>
 
-      <div className="flex gap-1 border-b border-slate-200">
-        {settingsTabs.map((tab) => (
+      <div className="flex gap-1 border-b border-line">
+        {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === tab
-                ? 'border-green-600 text-green-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
             {tab}
@@ -81,25 +81,25 @@ export default function SettingsClient({
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="org_name">Organisation Name</Label>
-                <Input id="org_name" defaultValue={company?.name ?? ''} />
+                <Input id="org_name" defaultValue={company?.name ?? ''} placeholder="Company name" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="org_abn">ABN</Label>
-                  <Input id="org_abn" defaultValue={company?.abn ?? ''} />
+                  <Input id="org_abn" defaultValue={company?.abn ?? ''} placeholder="XX XXX XXX XXX" />
                 </div>
                 <div>
                   <Label htmlFor="org_phone">Phone</Label>
-                  <Input id="org_phone" defaultValue={company?.phone ?? ''} />
+                  <Input id="org_phone" defaultValue={company?.phone ?? ''} placeholder="03 9000 0000" />
                 </div>
               </div>
               <div>
                 <Label htmlFor="org_email">Contact Email</Label>
-                <Input id="org_email" type="email" defaultValue={company?.email ?? ''} />
+                <Input id="org_email" type="email" defaultValue={company?.email ?? ''} placeholder="admin@company.com.au" />
               </div>
               <div>
                 <Label htmlFor="org_address">Address</Label>
-                <Input id="org_address" defaultValue={company?.address ?? ''} />
+                <Input id="org_address" defaultValue={company?.address ?? ''} placeholder="Street address" />
               </div>
               <div className="pt-2">
                 <Button><Save className="h-4 w-4" />Save Changes</Button>
@@ -131,13 +131,13 @@ export default function SettingsClient({
               <div>
                 <Label>Electricity Consent Version</Label>
                 <Input defaultValue="v1.0" />
-                <p className="text-xs text-slate-400 mt-1">Used to track which version of the consent form applicants agreed to</p>
+                <p className="text-xs text-ink-faint mt-1">Used to track which version of the consent form applicants agreed to</p>
               </div>
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <input type="checkbox" id="audit_log" defaultChecked className="w-4 h-4 rounded border-slate-300 text-green-600" />
+              <div className="flex items-center gap-3 p-3 bg-surface-muted rounded-lg border border-line">
+                <input type="checkbox" id="audit_log" defaultChecked className="w-4 h-4 rounded border-line text-primary" />
                 <div>
-                  <label htmlFor="audit_log" className="text-sm font-medium text-slate-700 cursor-pointer">Enable Audit Logging</label>
-                  <p className="text-xs text-slate-500">Record all create/update/delete actions across the platform</p>
+                  <label htmlFor="audit_log" className="text-sm font-medium text-ink cursor-pointer">Enable Audit Logging</label>
+                  <p className="text-xs text-ink-muted">Record all create/update/delete actions across the platform</p>
                 </div>
               </div>
               <Button><Save className="h-4 w-4" />Save Preferences</Button>
@@ -157,36 +157,37 @@ export default function SettingsClient({
             </CardHeader>
             <CardContent className="p-0">
               {users.length === 0 ? (
-                <div className="py-10 text-center text-sm text-slate-500">
+                <div className="px-6 py-10 text-center text-sm text-ink-muted">
                   No users found for this organisation.
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-line">
                   {users.map((user) => {
                     const displayName = user.full_name || user.email
-                    const initials = displayName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                    const initials = displayName
+                      .split(/[\s@]/)
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((n: string) => n[0])
+                      .join('')
+                      .toUpperCase()
                     const role = roleLabels[user.role] ?? { label: user.role, variant: 'gray' as const }
                     return (
                       <div key={user.id} className="flex items-center justify-between px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
+                          <div className="w-9 h-9 rounded-full bg-primary-soft flex items-center justify-center text-sm font-semibold text-primary">
                             {initials}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-slate-900">{displayName}</p>
-                            <p className="text-xs text-slate-400">{user.email}</p>
+                            <p className="text-sm font-medium text-ink">{displayName}</p>
+                            {user.full_name && <p className="text-xs text-ink-muted">{user.email}</p>}
+                            {!user.is_active && <span className="text-[10px] text-ink-faint">(inactive)</span>}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge variant={role.variant}>{role.label}</Badge>
-                          {!user.is_active && (
-                            <Badge variant="gray">Inactive</Badge>
-                          )}
-                          <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
+                          <button className="p-1.5 text-ink-faint hover:text-ink-muted hover:bg-surface-muted rounded-md">
                             <Pencil className="h-4 w-4" />
-                          </button>
-                          <button className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md">
-                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
@@ -203,17 +204,17 @@ export default function SettingsClient({
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="py-2 px-3 text-left font-semibold text-slate-600">Permission</th>
-                      <th className="py-2 px-3 text-center text-slate-600">Admin</th>
-                      <th className="py-2 px-3 text-center text-slate-600">Int. Mgr</th>
-                      <th className="py-2 px-3 text-center text-slate-600">Ext. Mgr</th>
-                      <th className="py-2 px-3 text-center text-slate-600">Agent</th>
-                      <th className="py-2 px-3 text-center text-slate-600">Maint.</th>
-                      <th className="py-2 px-3 text-center text-slate-600">Read</th>
+                    <tr className="border-b border-line">
+                      <th className="py-2 px-3 text-left font-semibold text-ink-muted">Permission</th>
+                      <th className="py-2 px-3 text-center text-ink-muted">Admin</th>
+                      <th className="py-2 px-3 text-center text-ink-muted">Int. Mgr</th>
+                      <th className="py-2 px-3 text-center text-ink-muted">Ext. Mgr</th>
+                      <th className="py-2 px-3 text-center text-ink-muted">Agent</th>
+                      <th className="py-2 px-3 text-center text-ink-muted">Maint.</th>
+                      <th className="py-2 px-3 text-center text-ink-muted">Read</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-line">
                     {[
                       ['View Properties', '✓', '✓', '✓', '✓', '✓', '✓'],
                       ['Edit Properties', '✓', '✓', '✓ (assigned)', '✕', '✕', '✕'],
@@ -227,10 +228,10 @@ export default function SettingsClient({
                       ['Integrations', '✓', '✕', '✕', '✕', '✕', '✕'],
                     ].map(([perm, ...perms]) => (
                       <tr key={perm}>
-                        <td className="py-2 px-3 text-slate-700 font-medium">{perm}</td>
+                        <td className="py-2 px-3 text-ink font-medium">{perm}</td>
                         {perms.map((val, i) => (
                           <td key={i} className="py-2 px-3 text-center">
-                            <span className={val === '✓' ? 'text-green-600 font-semibold' : val.startsWith('✓') ? 'text-amber-600' : 'text-slate-300'}>
+                            <span className={val === '✓' ? 'text-primary font-semibold' : val.startsWith('✓') ? 'text-warn' : 'text-ink-faint'}>
                               {val}
                             </span>
                           </td>
@@ -251,32 +252,31 @@ export default function SettingsClient({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Companies</CardTitle>
-                <Button size="sm"><Plus className="h-4 w-4" />Add Company</Button>
               </div>
             </CardHeader>
             <CardContent>
-              {company ? (
-                <div className="divide-y divide-slate-100">
+              {!company ? (
+                <p className="text-sm text-ink-muted text-center py-4">No company data found.</p>
+              ) : (
+                <div className="divide-y divide-line">
                   <div className="flex items-center justify-between py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
-                        <Building2 className="h-5 w-5 text-green-600" />
+                      <div className="w-10 h-10 rounded-xl bg-primary-soft flex items-center justify-center">
+                        <Building2 className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium text-slate-900">{company.name}</p>
-                        <p className="text-sm text-slate-500">
-                          {company.abn ? `ABN: ${company.abn} · ` : ''}{buildingCount} buildings · {propertyCount} properties
+                        <p className="font-medium text-ink">{company.name ?? '—'}</p>
+                        <p className="text-sm text-ink-muted">
+                          {company.abn ? `ABN: ${company.abn} · ` : ''}
+                          {buildingCount} building{buildingCount !== 1 ? 's' : ''} · {propertyCount} properties
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="success">Active</Badge>
-                      <Button variant="ghost" size="sm"><Pencil className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <p className="text-sm text-slate-500 py-4 text-center">No company information available.</p>
               )}
             </CardContent>
           </Card>
@@ -308,19 +308,19 @@ export default function SettingsClient({
               ]},
             ].map(({ section, items }) => (
               <div key={section}>
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">{section}</h3>
+                <h3 className="text-sm font-semibold text-ink mb-3">{section}</h3>
                 <div className="space-y-3">
                   {items.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div key={item.id} className="flex items-start gap-3 p-3 bg-surface-muted border border-line rounded-lg">
                       <input
                         type="checkbox"
                         id={item.id}
                         defaultChecked={['notif_urgent', 'notif_new_app', 'notif_consent_pending'].includes(item.id)}
-                        className="mt-0.5 w-4 h-4 rounded border-slate-300 text-green-600"
+                        className="mt-0.5 w-4 h-4 rounded border-line text-primary"
                       />
                       <div>
-                        <label htmlFor={item.id} className="text-sm font-medium text-slate-700 cursor-pointer">{item.label}</label>
-                        <p className="text-xs text-slate-500">{item.desc}</p>
+                        <label htmlFor={item.id} className="text-sm font-medium text-ink cursor-pointer">{item.label}</label>
+                        <p className="text-xs text-ink-muted">{item.desc}</p>
                       </div>
                     </div>
                   ))}

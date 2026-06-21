@@ -5,13 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import { OPEN_STATUSES } from '@/lib/maintenance/constants'
 
 function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHrs = Math.floor(diffMins / 60)
+  if (diffHrs < 24) return `${diffHrs}h ago`
+  return `${Math.floor(diffHrs / 24)}d ago`
 }
 
 async function getSidebarData() {
@@ -21,25 +20,21 @@ async function getSidebarData() {
     if (!user) return null
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
 
     const [profileRes, appCountRes, mainCountRes, urgentJobsRes, newAppsRes] = await Promise.all([
       supabase.from('profiles').select('full_name, role, company_id').eq('id', user.id).maybeSingle(),
       supabase.from('applications').select('id', { count: 'exact', head: true }).in('status', ['new', 'reviewing']),
       supabase.from('maintenance_jobs').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES).eq('is_active', true),
-      supabase
-        .from('maintenance_jobs')
-        .select('id, title, created_at')
-        .in('priority', ['urgent', 'high'])
+      supabase.from('maintenance_jobs')
+        .select('id, title, created_at, priority')
         .in('status', OPEN_STATUSES)
         .eq('is_active', true)
+        .in('priority', ['urgent', 'high'])
         .gte('created_at', sevenDaysAgo)
         .order('created_at', { ascending: false })
         .limit(5),
-      supabase
-        .from('applications')
-        .select('id, created_at, applicant_first_name, applicant_last_name')
+      supabase.from('applications')
+        .select('id, applicant_first_name, applicant_last_name, created_at')
         .eq('status', 'new')
         .gte('created_at', sevenDaysAgo)
         .order('created_at', { ascending: false })
@@ -55,17 +50,17 @@ async function getSidebarData() {
     const notifications: HeaderNotification[] = [
       ...(urgentJobsRes.data ?? []).map(j => ({
         id: `job-${j.id}`,
-        text: `Urgent maintenance: ${j.title}`,
-        time: formatRelativeTime(j.created_at ?? ''),
-        unread: !!j.created_at && j.created_at > fourHoursAgo,
+        text: `${j.priority === 'urgent' ? 'Urgent' : 'High priority'} job: ${j.title}`,
+        time: formatRelativeTime(j.created_at),
+        unread: true,
       })),
       ...(newAppsRes.data ?? []).map(a => ({
         id: `app-${a.id}`,
-        text: `New application: ${[a.applicant_first_name, a.applicant_last_name].filter(Boolean).join(' ') || 'Applicant'}`,
-        time: formatRelativeTime(a.created_at ?? ''),
-        unread: !!a.created_at && a.created_at > twoHoursAgo,
+        text: `New application: ${a.applicant_first_name} ${a.applicant_last_name}`,
+        time: formatRelativeTime(a.created_at),
+        unread: true,
       })),
-    ].sort((a, b) => (b.unread ? 1 : 0) - (a.unread ? 1 : 0))
+    ].sort((a, b) => (a.unread === b.unread ? 0 : a.unread ? -1 : 1))
 
     return {
       userName: profileRes.data?.full_name ?? user.email ?? 'User',

@@ -4,12 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import SettingsClient from './_components/settings-client'
 import type { UserRow, CompanyRow } from './_components/settings-client'
 
-async function getSettingsData(): Promise<{
-  company: CompanyRow | null
-  users: UserRow[]
-  buildingCount: number
-  propertyCount: number
-} | null> {
+async function getSettingsData() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -47,7 +42,7 @@ async function getSettingsData(): Promise<{
     ])
 
     return {
-      company: companyRes.data ?? null,
+      company: (companyRes.data ?? null) as CompanyRow | null,
       users: (usersRes.data ?? []) as UserRow[],
       buildingCount: buildingCountRes.count ?? 0,
       propertyCount: propertyCountRes.count ?? 0,

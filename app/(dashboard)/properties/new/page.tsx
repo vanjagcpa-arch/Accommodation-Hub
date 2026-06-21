@@ -5,22 +5,41 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/server'
 
-export default function NewPropertyPage() {
+export const dynamic = 'force-dynamic'
+
+async function getBuildings() {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('buildings')
+      .select('id, name, address, suburb')
+      .eq('is_active', true)
+      .order('name')
+    return (data ?? []) as { id: string; name: string; address: string | null; suburb: string | null }[]
+  } catch {
+    return []
+  }
+}
+
+export default async function NewPropertyPage() {
+  const buildings = await getBuildings()
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-2">
-        <Link href="/properties" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
+        <Link href="/properties" className="flex items-center gap-1 text-sm text-ink-muted hover:text-ink">
           <ChevronLeft className="h-4 w-4" />
           Properties
         </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-sm text-slate-700 font-medium">New Property</span>
+        <span className="text-ink-faint">/</span>
+        <span className="text-sm text-ink font-medium">New Property</span>
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Add Property</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Add a new property to a building</p>
+        <h1 className="text-2xl font-bold text-ink">Add Property</h1>
+        <p className="text-ink-muted text-sm mt-0.5">Add a new property to a building</p>
       </div>
 
       <form className="space-y-6">
@@ -30,16 +49,13 @@ export default function NewPropertyPage() {
             <div>
               <Label htmlFor="building_id" required>Building</Label>
               <Select id="building_id" name="building_id" placeholder="Select building" required>
-                <option value="b1">Parkview Apartments — 45 Park Street, Southbank</option>
-                <option value="b2">University Gardens — 12 Swanston Street, Carlton</option>
-                <option value="b3">Flinders House — 88 Flinders Lane, Melbourne</option>
-                <option value="b4">Brunswick Studios — 201 Sydney Road, Brunswick</option>
-                <option value="b5">Fitzroy Terrace — 55 Johnston Street, Fitzroy</option>
-                <option value="b6">Monash Towers — 900 Dandenong Road, Caulfield East</option>
-                <option value="b7">St Kilda Residences — 14 Acland Street, St Kilda</option>
-                <option value="b8">Hawthorn Court — 72 Glenferrie Road, Hawthorn</option>
-                <option value="b9">Docklands Point — 3 Waterfront Way, Docklands</option>
-                <option value="b10">Footscray Heights — 120 Nicholson Street, Footscray</option>
+                {buildings.length === 0 ? (
+                  <option value="" disabled>No buildings available</option>
+                ) : buildings.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}{b.address ? ` — ${b.address}${b.suburb ? `, ${b.suburb}` : ''}` : ''}
+                  </option>
+                ))}
               </Select>
             </div>
 
@@ -120,19 +136,19 @@ export default function NewPropertyPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-3 p-3 bg-surface-muted rounded-lg border border-line">
               <input
                 type="checkbox"
                 id="agent_visible"
                 name="agent_visible"
                 defaultChecked
-                className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                className="w-4 h-4 rounded border-line text-primary focus:ring-primary"
               />
               <div>
-                <label htmlFor="agent_visible" className="text-sm font-medium text-slate-700 cursor-pointer">
+                <label htmlFor="agent_visible" className="text-sm font-medium text-ink cursor-pointer">
                   Visible to agents
                 </label>
-                <p className="text-xs text-slate-500">Allow referral agents to see this property in their availability view</p>
+                <p className="text-xs text-ink-muted">Allow referral agents to see this property in their availability view</p>
               </div>
             </div>
           </CardContent>
@@ -152,9 +168,9 @@ export default function NewPropertyPage() {
                     type="checkbox"
                     name="features"
                     value={feature}
-                    className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                    className="w-4 h-4 rounded border-line text-primary focus:ring-primary"
                   />
-                  <span className="text-sm text-slate-700">{feature}</span>
+                  <span className="text-sm text-ink">{feature}</span>
                 </label>
               ))}
             </div>
@@ -171,7 +187,7 @@ export default function NewPropertyPage() {
                 name="notes"
                 rows={3}
                 placeholder="Notes visible to agents and tenants..."
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
               />
             </div>
             <div>
@@ -181,7 +197,7 @@ export default function NewPropertyPage() {
                 name="internal_notes"
                 rows={3}
                 placeholder="Internal notes (not visible to agents)..."
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
               />
             </div>
           </CardContent>

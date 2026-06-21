@@ -8,13 +8,6 @@ import Link from 'next/link'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import AssistantTrigger from '@/components/ai/assistant-trigger'
 
-export interface HeaderNotification {
-  id: string
-  text: string
-  time: string
-  unread: boolean
-}
-
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   reporting: 'Reporting',
@@ -38,11 +31,19 @@ function labelFor(segment: string) {
   )
 }
 
+export interface HeaderNotification {
+  id: string
+  text: string
+  time: string
+  unread: boolean
+}
+
 export function Header({ notifications = [] }: { notifications?: HeaderNotification[] }) {
   const pathname = usePathname()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   const segments = pathname.split('/').filter(Boolean)
+
   const unreadCount = notifications.filter((n) => n.unread).length
 
   return (
@@ -121,11 +122,10 @@ export function Header({ notifications = [] }: { notifications?: HeaderNotificat
                   )}
                 </div>
                 <div className="max-h-80 divide-y divide-line overflow-y-auto scrollbar-thin">
-                  {notifications.length === 0 ? (
-                    <div className="px-4 py-6 text-center text-[13px] text-ink-faint">
-                      No new notifications
-                    </div>
-                  ) : notifications.map((n) => (
+                  {notifications.length === 0 && (
+                    <p className="px-4 py-6 text-center text-[13px] text-ink-subtle">No new notifications</p>
+                  )}
+                  {notifications.map((n) => (
                     <div
                       key={n.id}
                       className="flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-surface-muted"

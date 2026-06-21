@@ -19,18 +19,17 @@ async function getElectricityBuildings(): Promise<ElecBuilding[]> {
         .select('building_id, status')
         .eq('is_active', true),
     ])
-
     const props = propsRes.data ?? []
     const unitCountMap: Record<string, number> = {}
     const occupiedMap: Record<string, number> = {}
     for (const p of props) {
       const bid = p.building_id as string
+      if (!bid) continue
       unitCountMap[bid] = (unitCountMap[bid] ?? 0) + 1
       if (p.status === 'leased' || p.status === 'occupied') {
         occupiedMap[bid] = (occupiedMap[bid] ?? 0) + 1
       }
     }
-
     return (buildingsRes.data ?? []).map(b => ({
       id: b.id,
       name: b.name,

@@ -12,14 +12,6 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-export interface ElecBuilding {
-  id: string
-  name: string
-  address: string
-  units: number
-  occupied: number
-}
-
 // ─── Types ──────────────────────────────────────────────────────────────────
 type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue'
 type ReadStatus = 'ok' | 'anomaly' | 'missing' | 'reviewed'
@@ -68,7 +60,14 @@ interface Tariff {
   paymentTerms: number
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+export interface ElecBuilding {
+  id: string
+  name: string
+  address: string
+  units: number
+  occupied: number
+}
+
 const TARIFF_DEFAULT: Tariff = {
   usageRate: 0.285,
   supplyCharge: 1.15,
@@ -77,7 +76,7 @@ const TARIFF_DEFAULT: Tariff = {
   paymentTerms: 14,
 }
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function getCurrentPeriod() {
   return new Date().toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })
@@ -92,10 +91,10 @@ function computeInvoice(r: MeterRead, tariff: Tariff, num: number, currentPeriod
   const total = subtotal + gst
   const [monthStr, yearStr] = currentPeriod.split(' ')
   const monthIdx = MONTHS.indexOf(monthStr)
-  const year = parseInt(yearStr)
-  const due = new Date(year, monthIdx + 1, tariff.paymentTerms)
-  const dueDate = due.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
-  const yearMonth = `${year}-${String(monthIdx + 1).padStart(2, '0')}`
+  const year = parseInt(yearStr, 10)
+  const dueDate = new Date(year, monthIdx + 1, tariff.paymentTerms)
+  const dueDateStr = dueDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+  const yearMonth = `${yearStr}-${String(monthIdx + 1).padStart(2, '0')}`
   return {
     id: `inv-${r.propertyId}`,
     number: `${tariff.invoicePrefix}-${yearMonth}-${String(num).padStart(3, '0')}`,
@@ -103,8 +102,8 @@ function computeInvoice(r: MeterRead, tariff: Tariff, num: number, currentPeriod
     property: r.property,
     building: r.building,
     tenant: r.tenant,
-    tenantEmail: `${r.tenant.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.')}@example.com`,
-    period: r.period,
+    tenantEmail: `${r.tenant.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.')}@tenant.accomhub`,
+    period: currentPeriod,
     usage,
     usageCharge,
     supplyCharge,
@@ -112,12 +111,11 @@ function computeInvoice(r: MeterRead, tariff: Tariff, num: number, currentPeriod
     gst,
     total,
     status: 'draft',
-    dueDate,
+    dueDate: dueDateStr,
     myobStatus: 'pending',
   }
 }
 
-// ─── Badge components ────────────────────────────────────────────────────────
 function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
   const map: Record<InvoiceStatus, { label: string; variant: 'success' | 'warning' | 'danger' | 'gray' | 'info' }> = {
     draft:   { label: 'Draft',   variant: 'gray' },
@@ -150,7 +148,6 @@ function SyncStatusBadge({ status }: { status: SyncStatus }) {
   return <Badge variant={variant} dot>{label}</Badge>
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
 type Tab = 'overview' | 'reads' | 'invoices' | 'myob' | 'settings'
 
 export default function ElectricityClient({ initialBuildings }: { initialBuildings: ElecBuilding[] }) {
@@ -357,10 +354,9 @@ export default function ElectricityClient({ initialBuildings }: { initialBuildin
             </CardHeader>
             <CardContent className="p-0">
               {initialBuildings.length === 0 ? (
-                <div className="py-12 text-center">
-                  <Zap className="h-8 w-8 text-ink-faint mx-auto mb-3" />
-                  <p className="text-sm text-ink-muted">No electricity-managed buildings configured.</p>
-                  <p className="text-xs text-ink-faint mt-1">Enable electricity management on a building in the Portfolio tab to get started.</p>
+                <div className="px-4 py-10 text-center text-[13px] text-ink-subtle">
+                  No buildings are configured for electricity retailing.{' '}
+                  <a href="/buildings" className="text-primary hover:underline">Configure a building</a> to get started.
                 </div>
               ) : (
                 <Table>
@@ -370,7 +366,7 @@ export default function ElectricityClient({ initialBuildings }: { initialBuildin
                       <TableHead>Occupied</TableHead>
                       <TableHead>Reads This Month</TableHead>
                       <TableHead>Anomalies</TableHead>
-                      <TableHead>Period Invoices</TableHead>
+                      <TableHead>{currentPeriod} Invoices</TableHead>
                       <TableHead>Outstanding</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -421,7 +417,7 @@ export default function ElectricityClient({ initialBuildings }: { initialBuildin
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { icon: Upload,    label: 'Import Meter Reads', desc: `Upload CSV for ${currentPeriod} (${currentReads.length} properties)`, color: 'bg-info/10 text-info',       action: () => fileInputRef.current?.click() },
-              { icon: FileText,  label: 'Generate Invoices',  desc: `Create invoices for all readable properties`,                          color: 'bg-primary-soft text-primary', action: handleGenerateInvoices },
+              { icon: FileText,  label: 'Generate Invoices',  desc: 'Create invoices for all readable properties',                          color: 'bg-primary-soft text-primary', action: handleGenerateInvoices },
               { icon: RefreshCw, label: 'Sync to MYOB',       desc: `${pendingSync.length} invoices pending sync`,                          color: 'bg-warn/10 text-warn',         action: () => setActiveTab('myob') },
             ].map(a => (
               <button
@@ -486,16 +482,12 @@ export default function ElectricityClient({ initialBuildings }: { initialBuildin
           <Card>
             <CardContent className="p-0">
               {filteredReads.length === 0 ? (
-                <div className="py-12 text-center">
-                  <Upload className="h-8 w-8 text-ink-faint mx-auto mb-3" />
-                  <p className="text-sm text-ink-muted font-medium">No meter reads for {currentPeriod}</p>
-                  <p className="text-xs text-ink-faint mt-1">Import a CSV file to load meter reads for this billing period.</p>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="mt-3 text-[13px] font-medium text-primary hover:underline"
-                  >
-                    Import CSV →
-                  </button>
+                <div className="py-10 text-center text-[13px] text-ink-subtle">
+                  No meter reads for {currentPeriod}.{' '}
+                  <button onClick={() => fileInputRef.current?.click()} className="text-primary hover:underline">
+                    Import a CSV
+                  </button>{' '}
+                  to get started.
                 </div>
               ) : (
                 <Table>
