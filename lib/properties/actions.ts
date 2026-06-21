@@ -80,7 +80,7 @@ export async function createProperty(_prev: ActionState, formData: FormData): Pr
     internal_notes: str(formData, 'internal_notes'),
     agent_visible: formData.get('agent_visible') === 'on',
     owner_id: str(formData, 'owner_id'),
-    managed_status: 'manual',
+    managed_status: 'managed',
     reapit_external_id: str(formData, 'reapit_external_id'),
     listonce_external_id: str(formData, 'listonce_external_id'),
     ezidebit_code: str(formData, 'ezidebit_code'),
