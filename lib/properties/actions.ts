@@ -8,6 +8,20 @@ export interface ActionState {
   error: string | null
 }
 
+const MANAGED_STATUS_VALUES = ['managed', 'external'] as const
+type ManagedStatus = typeof MANAGED_STATUS_VALUES[number]
+
+function managedStatus(formData: FormData): ManagedStatus {
+  const v = formData.get('managed_status')
+  return v === 'external' ? 'external' : 'managed'
+}
+
+function friendlyDbError(msg: string): string {
+  if (msg.includes('managed_status_check')) return 'Invalid management type — must be "Managed" or "External".'
+  if (msg.includes('properties_status_check')) return 'Invalid status value selected.'
+  return msg
+}
+
 function str(formData: FormData, key: string): string | null {
   const v = formData.get(key)
   if (typeof v !== 'string') return null
@@ -67,6 +81,7 @@ export async function createProperty(_prev: ActionState, formData: FormData): Pr
     building_id: buildingId,
     unit_number: unitNumber,
     property_type: str(formData, 'property_type'),
+    managed_status: managedStatus(formData),
     bedrooms: num(formData, 'bedrooms') ?? 1,
     bathrooms: num(formData, 'bathrooms') ?? 1,
     floor_level: num(formData, 'floor_level'),
@@ -95,7 +110,7 @@ export async function createProperty(_prev: ActionState, formData: FormData): Pr
 
   if (error) {
     console.error('[properties/createProperty]', error.message, { code: error.code })
-    return { error: error.message }
+    return { error: friendlyDbError(error.message) }
   }
 
   const { error: refErr } = await supabase.from('property_source_refs').upsert(
@@ -162,6 +177,7 @@ export async function updateProperty(_prev: ActionState, formData: FormData): Pr
     building_id: buildingId,
     unit_number: unitNumber,
     property_type: str(formData, 'property_type'),
+    managed_status: managedStatus(formData),
     bedrooms: num(formData, 'bedrooms') ?? 1,
     bathrooms: num(formData, 'bathrooms') ?? 1,
     floor_level: num(formData, 'floor_level'),
@@ -191,7 +207,7 @@ export async function updateProperty(_prev: ActionState, formData: FormData): Pr
 
   if (error) {
     console.error('[properties/updateProperty]', error.message, { id, code: error.code })
-    return { error: error.message }
+    return { error: friendlyDbError(error.message) }
   }
 
   const { error: refErr } = await supabase.from('property_source_refs').upsert(
