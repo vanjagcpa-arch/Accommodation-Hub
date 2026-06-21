@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { updateMaintenanceJob, type ActionState } from '@/lib/maintenance/actions'
 import { PRIORITY_ORDER, PRIORITY_META } from '@/lib/maintenance/constants'
-import type { MaintenanceJob, MaintenanceFormOptions } from '@/types'
+import type { MaintenanceJob, MaintenanceFormOptions, MaintenancePriority } from '@/types'
 
 const selectClass =
   'flex h-9 w-full appearance-none rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-ring/50'
@@ -23,7 +23,7 @@ export function EditJobForm({ job, options }: Props) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(updateMaintenanceJob, { error: null })
   const [building, setBuilding] = useState(job.building_id ?? '')
   const [propertyId, setPropertyId] = useState(job.property_id ?? '')
-  const [priority, setPriority] = useState(job.priority ?? 'medium')
+  const [priority, setPriority] = useState<MaintenancePriority>(job.priority ?? 'medium')
 
   const properties = building
     ? options.properties.filter((p) => p.building_id === building)
@@ -56,10 +56,10 @@ export function EditJobForm({ job, options }: Props) {
             </div>
             <div>
               <Label htmlFor="priority">Priority</Label>
-              <select id="priority" name="priority" className={selectClass} value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <select id="priority" name="priority" className={selectClass} value={priority} onChange={(e) => setPriority(e.target.value as MaintenancePriority)}>
                 {PRIORITY_ORDER.map((p) => <option key={p} value={p}>{PRIORITY_META[p].label}</option>)}
               </select>
-              <p className="mt-1 text-[11px] text-ink-faint">Target response: within {PRIORITY_META[priority as keyof typeof PRIORITY_META]?.slaHours ?? 72}h</p>
+              <p className="mt-1 text-[11px] text-ink-faint">Target response: within {PRIORITY_META[priority]?.slaHours ?? 72}h</p>
             </div>
           </div>
           <div>
