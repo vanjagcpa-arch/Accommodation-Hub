@@ -19,6 +19,7 @@ import {
   RefreshCw,
   Tag,
   Receipt,
+  Layers,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -49,6 +50,7 @@ export const navGroups: NavGroup[] = [
     label: 'Portfolio',
     icon: Building2,
     items: [
+      { name: 'Portfolio', href: '/portfolio', icon: Layers, exact: true },
       { name: 'Buildings', href: '/buildings', icon: Hotel },
       { name: 'Properties', href: '/properties', icon: Building2 },
       { name: 'Availability', href: '/availability', icon: CalendarDays },

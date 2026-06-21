@@ -31,18 +31,19 @@ function labelFor(segment: string) {
   )
 }
 
-export function Header() {
+export interface HeaderNotification {
+  id: string
+  text: string
+  time: string
+  unread: boolean
+}
+
+export function Header({ notifications = [] }: { notifications?: HeaderNotification[] }) {
   const pathname = usePathname()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   const segments = pathname.split('/').filter(Boolean)
 
-  const notifications = [
-    { id: 1, text: 'New maintenance job: AC not cooling — Unit 101', time: '5m ago', unread: true },
-    { id: 2, text: 'Application approved: Wei Zhang → Unit 102', time: '1h ago', unread: true },
-    { id: 3, text: 'Lease ending soon: Unit 201 Parkview Apartments', time: '2h ago', unread: false },
-    { id: 4, text: 'Urgent job overdue: Water damage ceiling stain', time: '3h ago', unread: false },
-  ]
   const unreadCount = notifications.filter((n) => n.unread).length
 
   return (
@@ -114,11 +115,16 @@ export function Header() {
               <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <h3 className="text-sm font-semibold text-ink">Notifications</h3>
-                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary-active">
-                    {unreadCount} new
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary-active">
+                      {unreadCount} new
+                    </span>
+                  )}
                 </div>
                 <div className="max-h-80 divide-y divide-line overflow-y-auto scrollbar-thin">
+                  {notifications.length === 0 && (
+                    <p className="px-4 py-6 text-center text-[13px] text-ink-subtle">No new notifications</p>
+                  )}
                   {notifications.map((n) => (
                     <div
                       key={n.id}
