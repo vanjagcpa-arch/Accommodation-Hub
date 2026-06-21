@@ -93,14 +93,71 @@ export async function createMaintenanceJob(_prev: ActionState, formData: FormDat
   redirect(`/maintenance/${data.id}`)
 }
 
+export async function updateMaintenanceJob(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user || !companyId) return { error: 'You must be signed in.' }
+
+  const id = str(formData, 'id')
+  if (!id) return { error: 'Job ID missing.' }
+
+  const title = str(formData, 'title')
+  if (!title) return { error: 'A job title is required.' }
+
+  const updates = {
+    title,
+    description: str(formData, 'description'),
+    building_id: str(formData, 'building_id'),
+    property_id: str(formData, 'property_id'),
+    tenant_id: str(formData, 'tenant_id'),
+    category_id: str(formData, 'category_id'),
+    priority: str(formData, 'priority') ?? 'medium',
+    source: str(formData, 'source') ?? 'manager',
+    reported_by_name: str(formData, 'reported_by_name'),
+    due_date: str(formData, 'due_date'),
+    scheduled_date: str(formData, 'scheduled_date'),
+    preferred_access_window: str(formData, 'preferred_access_window'),
+    access_notes: str(formData, 'access_notes'),
+    internal_notes: str(formData, 'internal_notes'),
+    estimated_cost: num(formData, 'estimated_cost'),
+    updated_by: user.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { error } = await supabase
+    .from('maintenance_jobs')
+    .update(updates)
+    .eq('id', id)
+    .eq('company_id', companyId)
+
+  if (error) {
+    console.error('[maintenance/updateMaintenanceJob]', error.message, { id, code: error.code })
+    return { error: error.message }
+  }
+
+  await supabase.from('audit_logs').insert({
+    company_id: companyId,
+    user_id: user.id,
+    action: 'updated',
+    entity_type: 'maintenance_job',
+    entity_id: id,
+    new_values: updates,
+    description: `Updated maintenance job: ${title}`,
+  })
+
+  revalidatePath(`/maintenance/${id}`)
+  revalidatePath('/maintenance')
+  redirect(`/maintenance/${id}`)
+}
+
 export async function updateJobStatus(jobId: string, status: MaintenanceStatus, note: string): Promise<ActionState> {
   const { supabase, user, companyId } = await currentContext()
-  if (!user) return { error: 'Not signed in.' }
+  if (!user || !companyId) return { error: 'Not signed in.' }
 
   const { error } = await supabase
     .from('maintenance_jobs')
     .update({ status, updated_by: user.id })
     .eq('id', jobId)
+    .eq('company_id', companyId)
 
   if (error) {
     console.error('[maintenance/updateJobStatus]', error.message, { jobId, status })
@@ -174,12 +231,13 @@ export async function assignJobStaff(
   note: string,
 ): Promise<ActionState> {
   const { supabase, user, companyId } = await currentContext()
-  if (!user) return { error: 'Not signed in.' }
+  if (!user || !companyId) return { error: 'Not signed in.' }
 
   const { data: current } = await supabase
     .from('maintenance_jobs')
     .select('status')
     .eq('id', jobId)
+    .eq('company_id', companyId)
     .maybeSingle()
 
   const update: Record<string, unknown> = {
@@ -194,7 +252,7 @@ export async function assignJobStaff(
     update.status = 'new'
   }
 
-  const { error } = await supabase.from('maintenance_jobs').update(update).eq('id', jobId)
+  const { error } = await supabase.from('maintenance_jobs').update(update).eq('id', jobId).eq('company_id', companyId)
   if (error) return { error: error.message }
 
   if (companyId) {
@@ -218,7 +276,7 @@ export async function assignJobStaff(
 
 export async function completeJob(jobId: string, completionNotes: string): Promise<ActionState> {
   const { supabase, user, companyId } = await currentContext()
-  if (!user) return { error: 'Not signed in.' }
+  if (!user || !companyId) return { error: 'Not signed in.' }
 
   const { error } = await supabase
     .from('maintenance_jobs')
@@ -229,6 +287,7 @@ export async function completeJob(jobId: string, completionNotes: string): Promi
       updated_by: user.id,
     })
     .eq('id', jobId)
+    .eq('company_id', companyId)
 
   if (error) {
     console.error('[maintenance/completeJob]', error.message, { jobId })
@@ -252,7 +311,7 @@ export async function completeJob(jobId: string, completionNotes: string): Promi
   return { error: null, ok: true }
 }
 
-// ── Phase 3 ────────────────────────────────────────────────────────────────
+// ── Phase 3 ──────────────────────────────────────────────────────────────────────
 
 export async function createContractor(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { supabase, user, companyId } = await currentContext()
@@ -345,7 +404,7 @@ export async function toggleRecurringRule(ruleId: string, isActive: boolean): Pr
   return { error: null, ok: true }
 }
 
-// ── Services ────────────────────────────────────────────────────────────────
+// ── Services ────────────────────────────────────────────────────────────────────────
 
 export async function createService(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { supabase, user, companyId } = await currentContext()
@@ -430,7 +489,7 @@ export async function toggleServiceActive(serviceId: string, isActive: boolean):
   return { error: null, ok: true }
 }
 
-// ── Travel times ─────────────────────────────────────────────────────────────
+// ── Travel times ───────────────────────────────────────────────────────────────────────────
 
 export async function setTravelTime(
   fromBuildingId: string,
@@ -456,7 +515,7 @@ export async function setTravelTime(
   return { error: null, ok: true }
 }
 
-// ── Invoices ─────────────────────────────────────────────────────────────────
+// ── Invoices ───────────────────────────────────────────────────────────────────────────
 
 export async function createInvoice(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { supabase, user, companyId } = await currentContext()
