@@ -1,7 +1,18 @@
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
+import type { HeaderNotification } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/server'
 import { OPEN_STATUSES } from '@/lib/maintenance/constants'
+
+function formatRelativeTime(isoString: string): string {
+  const diffMs = Date.now() - new Date(isoString).getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
+}
 
 async function getSidebarData() {
   try {
@@ -9,10 +20,30 @@ async function getSidebarData() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const [profileRes, appCountRes, mainCountRes] = await Promise.all([
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const sevenDaysAgoISO = sevenDaysAgo.toISOString()
+
+    const [profileRes, appCountRes, mainCountRes, urgentJobsRes, newAppsRes] = await Promise.all([
       supabase.from('profiles').select('full_name, role, company_id').eq('id', user.id).maybeSingle(),
       supabase.from('applications').select('id', { count: 'exact', head: true }).in('status', ['new', 'reviewing']),
       supabase.from('maintenance_jobs').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES).eq('is_active', true),
+      supabase
+        .from('maintenance_jobs')
+        .select('id, title, priority, created_at')
+        .in('priority', ['urgent', 'high'])
+        .in('status', OPEN_STATUSES)
+        .eq('is_active', true)
+        .gte('created_at', sevenDaysAgoISO)
+        .order('created_at', { ascending: false })
+        .limit(4),
+      supabase
+        .from('applications')
+        .select('id, applicant_first_name, applicant_last_name, created_at')
+        .eq('status', 'new')
+        .gte('created_at', sevenDaysAgoISO)
+        .order('created_at', { ascending: false })
+        .limit(3),
     ])
 
     let companyName = 'AccomHub'
@@ -21,12 +52,29 @@ async function getSidebarData() {
       if (compRes.data?.name) companyName = compRes.data.name
     }
 
+    const urgentNotifs: HeaderNotification[] = (urgentJobsRes.data ?? []).map(j => ({
+      id: j.id,
+      text: `${j.priority === 'urgent' ? 'Urgent' : 'High priority'} job: ${j.title}`,
+      time: formatRelativeTime(j.created_at),
+      unread: Date.now() - new Date(j.created_at).getTime() < 4 * 3600000,
+    }))
+
+    const appNotifs: HeaderNotification[] = (newAppsRes.data ?? []).map(a => ({
+      id: a.id,
+      text: `New application: ${a.applicant_first_name} ${a.applicant_last_name}`,
+      time: formatRelativeTime(a.created_at),
+      unread: Date.now() - new Date(a.created_at).getTime() < 2 * 3600000,
+    }))
+
+    const notifications = [...urgentNotifs, ...appNotifs].slice(0, 6)
+
     return {
       userName: profileRes.data?.full_name ?? user.email ?? 'User',
       userRole: profileRes.data?.role ?? 'read_only',
       companyName,
       appCount: appCountRes.count ?? 0,
       mainCount: mainCountRes.count ?? 0,
+      notifications,
     }
   } catch {
     return null
@@ -51,7 +99,7 @@ export default async function DashboardLayout({
           mainCount={data?.mainCount ?? 0}
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Header />
+          <Header notifications={data?.notifications ?? []} />
           <main className="flex-1 overflow-y-auto scrollbar-thin">
             <div className="px-5 py-6 lg:px-8 lg:py-7">{children}</div>
           </main>

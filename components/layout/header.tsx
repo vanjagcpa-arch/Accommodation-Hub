@@ -8,6 +8,13 @@ import Link from 'next/link'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import AssistantTrigger from '@/components/ai/assistant-trigger'
 
+export interface HeaderNotification {
+  id: string
+  text: string
+  time: string
+  unread: boolean
+}
+
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   reporting: 'Reporting',
@@ -31,18 +38,11 @@ function labelFor(segment: string) {
   )
 }
 
-export function Header() {
+export function Header({ notifications = [] }: { notifications?: HeaderNotification[] }) {
   const pathname = usePathname()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   const segments = pathname.split('/').filter(Boolean)
-
-  const notifications = [
-    { id: 1, text: 'New maintenance job: AC not cooling — Unit 101', time: '5m ago', unread: true },
-    { id: 2, text: 'Application approved: Wei Zhang → Unit 102', time: '1h ago', unread: true },
-    { id: 3, text: 'Lease ending soon: Unit 201 Parkview Apartments', time: '2h ago', unread: false },
-    { id: 4, text: 'Urgent job overdue: Water damage ceiling stain', time: '3h ago', unread: false },
-  ]
   const unreadCount = notifications.filter((n) => n.unread).length
 
   return (
@@ -79,10 +79,8 @@ export function Header() {
 
       {/* Right utilities */}
       <div className="flex items-center gap-2">
-        {/* AI Assistant */}
         <AssistantTrigger />
 
-        {/* Command / search pill */}
         <button className="hidden items-center gap-2 rounded-lg border border-line bg-surface-muted px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:border-line-strong hover:text-ink-muted sm:flex">
           <Search className="h-4 w-4" />
           <span>Search or jump to…</span>
@@ -91,7 +89,6 @@ export function Header() {
           </span>
         </button>
 
-        {/* Search icon (mobile) */}
         <button className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink sm:hidden">
           <Search className="h-4 w-4" />
         </button>
@@ -114,28 +111,36 @@ export function Header() {
               <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <h3 className="text-sm font-semibold text-ink">Notifications</h3>
-                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary-active">
-                    {unreadCount} new
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary-active">
+                      {unreadCount} new
+                    </span>
+                  )}
                 </div>
                 <div className="max-h-80 divide-y divide-line overflow-y-auto scrollbar-thin">
-                  {notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className="flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-surface-muted"
-                    >
-                      <span
-                        className={cn(
-                          'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
-                          n.unread ? 'bg-primary' : 'bg-line-strong'
-                        )}
-                      />
-                      <div className="min-w-0">
-                        <p className="text-[13px] leading-snug text-ink">{n.text}</p>
-                        <p className="mt-0.5 text-[11px] text-ink-subtle">{n.time}</p>
-                      </div>
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-[13px] text-ink-faint">
+                      No new notifications
                     </div>
-                  ))}
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        className="flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-surface-muted"
+                      >
+                        <span
+                          className={cn(
+                            'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                            n.unread ? 'bg-primary' : 'bg-line-strong'
+                          )}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-[13px] leading-snug text-ink">{n.text}</p>
+                          <p className="mt-0.5 text-[11px] text-ink-subtle">{n.time}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="border-t border-line px-4 py-2.5">
                   <button className="text-[13px] font-medium text-primary transition-colors hover:text-primary-hover">
