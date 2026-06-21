@@ -27,6 +27,7 @@ interface Property {
   notes: string | null
   internal_notes: string | null
   agent_visible: boolean
+  assigned_manager_id: string | null
   reapit_external_id: string | null
   listonce_external_id: string | null
   ezidebit_code: string | null
@@ -35,6 +36,7 @@ interface Property {
 interface Props {
   property: Property
   buildings: { id: string; name: string; address: string | null; suburb: string | null }[]
+  managers: { id: string; first_name: string; last_name: string }[]
 }
 
 const ALL_FEATURES = [
@@ -43,7 +45,7 @@ const ALL_FEATURES = [
   'Courtyard access', 'Bike storage', 'High-speed internet',
 ]
 
-export function EditPropertyForm({ property, buildings }: Props) {
+export function EditPropertyForm({ property, buildings, managers }: Props) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(updateProperty, { error: null })
 
   return (
@@ -87,6 +89,16 @@ export function EditPropertyForm({ property, buildings }: Props) {
                 <option value="Room">Room (Shared)</option>
               </Select>
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="assigned_manager_id">Assigned Manager</Label>
+            <Select id="assigned_manager_id" name="assigned_manager_id" defaultValue={property.assigned_manager_id ?? ''}>
+              <option value="">No manager assigned</option>
+              {managers.map(m => (
+                <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
+              ))}
+            </Select>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
