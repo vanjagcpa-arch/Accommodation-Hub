@@ -98,6 +98,22 @@ export async function createProperty(_prev: ActionState, formData: FormData): Pr
     return { error: error.message }
   }
 
+  const { error: refErr } = await supabase.from('property_source_refs').upsert(
+    { property_id: data.id, source: 'manual', sync_status: 'not_connected' },
+    { onConflict: 'property_id,source', ignoreDuplicates: true }
+  )
+  if (refErr) console.error('[properties/createProperty] source_ref', refErr.message)
+
+  const { error: logErr } = await supabase.from('property_sync_logs').insert({
+    property_id: data.id,
+    source: 'manual',
+    status: 'success',
+    message: `Unit ${unitNumber} created manually`,
+    fields_updated: Object.keys(payload),
+    triggered_by: user.id,
+  })
+  if (logErr) console.error('[properties/createProperty] sync_log', logErr.message)
+
   await supabase.from('audit_logs').insert({
     company_id: companyId,
     user_id: user.id,
@@ -177,6 +193,22 @@ export async function updateProperty(_prev: ActionState, formData: FormData): Pr
     console.error('[properties/updateProperty]', error.message, { id, code: error.code })
     return { error: error.message }
   }
+
+  const { error: refErr } = await supabase.from('property_source_refs').upsert(
+    { property_id: id, source: 'manual', sync_status: 'not_connected' },
+    { onConflict: 'property_id,source', ignoreDuplicates: true }
+  )
+  if (refErr) console.error('[properties/updateProperty] source_ref', refErr.message)
+
+  const { error: logErr } = await supabase.from('property_sync_logs').insert({
+    property_id: id,
+    source: 'manual',
+    status: 'success',
+    message: `Unit ${unitNumber} updated manually`,
+    fields_updated: Object.keys(updates),
+    triggered_by: user.id,
+  })
+  if (logErr) console.error('[properties/updateProperty] sync_log', logErr.message)
 
   await supabase.from('audit_logs').insert({
     company_id: companyId,
