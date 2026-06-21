@@ -143,7 +143,7 @@ export default function AssistantPanel({ isOpen, onClose, context, suggestedProm
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  const prompts = suggestedPrompts ?? (context?.propertyCode ? PROPERTY_PROMPTS : DEFAULT_PROMPTS)
+  const prompts = suggestedPrompts ?? (context?.propertyId ? PROPERTY_PROMPTS : DEFAULT_PROMPTS)
 
   useEffect(() => {
     if (isOpen) inputRef.current?.focus()
@@ -234,10 +234,7 @@ export default function AssistantPanel({ isOpen, onClose, context, suggestedProm
           </div>
           <div>
             <p className="text-[13px] font-semibold text-ink">AI Assistant</p>
-            {context?.propertyCode && (
-              <p className="text-[11px] text-ink-muted">Property: {context.propertyCode}</p>
-            )}
-            {context?.page && !context.propertyCode && (
+            {context?.page && (
               <p className="text-[11px] text-ink-muted">{context.page}</p>
             )}
           </div>
@@ -259,12 +256,6 @@ export default function AssistantPanel({ isOpen, onClose, context, suggestedProm
             <X className="h-4 w-4" />
           </button>
         </div>
-      </div>
-
-      {/* Mock data notice */}
-      <div className="flex items-center gap-2 border-b border-line bg-amber-50 px-4 py-2">
-        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 shrink-0">MOCK DATA</span>
-        <p className="text-[11px] text-amber-700">Using demo data — connect live integrations to use real records.</p>
       </div>
 
       {/* Messages */}

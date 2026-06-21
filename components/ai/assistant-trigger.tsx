@@ -5,9 +5,15 @@ import { Sparkles } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import AssistantPanel from './assistant-panel'
 
-function deriveContext(pathname: string): { page: string; propertyCode?: string } {
-  if (pathname.startsWith('/properties/') && pathname !== '/properties/new') {
-    return { page: 'Property Detail' }
+function deriveContext(pathname: string): { page: string; propertyId?: string } {
+  // Extract property UUID from /properties/[id] or /properties/[id]/edit
+  if (pathname.startsWith('/properties/')) {
+    const parts = pathname.split('/')
+    const segment = parts[2]
+    if (segment && segment !== 'new') {
+      const isEdit = parts[3] === 'edit'
+      return { page: isEdit ? 'Edit Property' : 'Property Detail', propertyId: segment }
+    }
   }
   if (pathname === '/properties') return { page: 'Portfolio' }
   if (pathname === '/maintenance') return { page: 'Maintenance' }

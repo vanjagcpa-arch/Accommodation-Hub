@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { AI_TOOLS } from '@/lib/ai/tools'
+import { createClient } from '@/lib/supabase/server'
+import { buildAssistantContext } from '@/lib/ai/context'
 
 export const maxDuration = 60
 
 const SYSTEM_PROMPT = `You are an operations assistant for a student accommodation management platform.
 You help property managers answer operational questions about properties, tenants, applications, vacancies, maintenance jobs, and electricity billing.
 
-Your data is currently MOCK/DEMO data. Always acknowledge this when relevant to the answer.
+Your data comes from the live application database and is provided in the DATA FROM SYSTEM section below.
+Always base your answers on that data. If the data section is empty or does not contain what is needed to answer the question, say clearly that no matching records were found — do not invent information.
 
 Your capabilities (read-only):
 - Summarise properties, tenants, and buildings
-- Review application status and missing documents
+- Review application status
 - Check vacancy status and prioritise leasing
 - Review maintenance jobs and identify blockers
 - Check electricity billing and payment status
@@ -28,7 +30,7 @@ Hard limits — never do these:
 
 When drafting messages, always say "This is a draft — please review before sending."
 When recommending actions, be practical and concise.
-If data is missing, say what is missing rather than guessing.
+If no relevant records exist in the data, say so clearly rather than guessing.
 Format responses with clear headings and bullet points where it helps readability.
 Keep answers focused on the operational question.`
 
@@ -49,88 +51,6 @@ interface RequestBody {
   history?: Message[]
 }
 
-// Decide which tools to call based on the message + context
-function selectTools(message: string, context: RequestBody['context']): {
-  toolName: keyof typeof AI_TOOLS
-  args: unknown[]
-  label: string
-}[] {
-  const msg = message.toLowerCase()
-  const tools: { toolName: keyof typeof AI_TOOLS; args: unknown[]; label: string }[] = []
-
-  const propertyRef = context?.propertyCode
-
-  // Always fetch daily summary if asking about "today" or "attention" or "overview"
-  if (msg.includes('today') || msg.includes('attention') || msg.includes('summary') || msg.includes('overview') || msg.includes('dashboard')) {
-    tools.push({ toolName: 'getDailyOperationsSummary', args: [], label: 'Daily operations summary' })
-  }
-
-  // Property-specific queries
-  if (propertyRef) {
-    if (msg.includes('summar') || msg.includes('overview') || msg.includes('about') || msg.includes('tell me')) {
-      tools.push({ toolName: 'getPropertySummary', args: [propertyRef], label: `Property summary: ${propertyRef}` })
-    }
-    if (msg.includes('tenant') || msg.includes('who lives') || msg.includes('occupant')) {
-      tools.push({ toolName: 'getTenantStatus', args: [propertyRef], label: `Tenant status: ${propertyRef}` })
-    }
-    if (msg.includes('vacant') || msg.includes('vacancy') || msg.includes('available')) {
-      tools.push({ toolName: 'getVacancyStatus', args: [propertyRef], label: `Vacancy status: ${propertyRef}` })
-    }
-    if (msg.includes('application') || msg.includes('applicant')) {
-      tools.push({ toolName: 'getApplicationsForProperty', args: [propertyRef], label: `Applications: ${propertyRef}` })
-    }
-    if (msg.includes('maintenance') || msg.includes('repair') || msg.includes('job')) {
-      tools.push({ toolName: 'getOpenMaintenanceJobs', args: [propertyRef], label: `Maintenance jobs: ${propertyRef}` })
-    }
-    if (msg.includes('electric') || msg.includes('billing') || msg.includes('invoice') || msg.includes('payment')) {
-      tools.push({ toolName: 'getElectricityBillingStatus', args: [propertyRef], label: `Electricity billing: ${propertyRef}` })
-    }
-    if (msg.includes('owe') || msg.includes('debt') || msg.includes('overdue') || msg.includes('payment')) {
-      tools.push({ toolName: 'getPaymentStatus', args: [propertyRef], label: `Payment status: ${propertyRef}` })
-    }
-    // Default for property context: load full summary
-    if (tools.length === 0) {
-      tools.push({ toolName: 'getPropertySummary', args: [propertyRef], label: `Property summary: ${propertyRef}` })
-    }
-  }
-
-  // Global queries (no specific property context)
-  if (!propertyRef || tools.length === 0) {
-    if (msg.includes('vacant') || msg.includes('vacancy') || msg.includes('priorit') || msg.includes('available')) {
-      tools.push({ toolName: 'getVacantApartments', args: [], label: 'Vacant apartments' })
-    }
-    if (msg.includes('application') || msg.includes('applicant') || msg.includes('review') || msg.includes('document') || msg.includes('missing')) {
-      tools.push({ toolName: 'getApplicationsNeedingReview', args: [], label: 'Applications needing review' })
-    }
-    if (msg.includes('maintenance') || msg.includes('repair') || msg.includes('job') || msg.includes('block')) {
-      tools.push({ toolName: 'getOpenMaintenanceJobs', args: [], label: 'Open maintenance jobs' })
-    }
-    if (msg.includes('block') || msg.includes('leasing') || msg.includes('prevent')) {
-      tools.push({ toolName: 'getMaintenanceBlockingLeasing', args: [], label: 'Maintenance blocking leasing' })
-    }
-    if (msg.includes('electric') || msg.includes('billing') || msg.includes('invoice') || msg.includes('overdue')) {
-      tools.push({ toolName: 'getOverdueElectricityAccounts', args: [], label: 'Overdue electricity accounts' })
-    }
-    if (msg.includes('owe') || msg.includes('debt') || msg.includes('payment')) {
-      tools.push({ toolName: 'getOverdueElectricityAccounts', args: [], label: 'Overdue accounts' })
-    }
-
-    // Fallback: load daily summary if still no tools selected
-    if (tools.length === 0) {
-      tools.push({ toolName: 'getDailyOperationsSummary', args: [], label: 'Daily operations summary' })
-    }
-  }
-
-  // Deduplicate by toolName+args
-  const seen = new Set<string>()
-  return tools.filter((t) => {
-    const key = `${t.toolName}:${JSON.stringify(t.args)}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-}
-
 export async function POST(request: Request) {
   // Validate API key
   const apiKey = process.env.OPENAI_API_KEY
@@ -142,6 +62,19 @@ export async function POST(request: Request) {
       },
       { status: 503 }
     )
+  }
+
+  // Require authentication — all DB queries run as the signed-in user (RLS enforced)
+  let supabase: Awaited<ReturnType<typeof createClient>>
+  try {
+    supabase = await createClient()
+  } catch {
+    return NextResponse.json({ error: 'Database connection unavailable.' }, { status: 503 })
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'You must be signed in to use the assistant.' }, { status: 401 })
   }
 
   let body: RequestBody
@@ -157,30 +90,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Message is required.' }, { status: 400 })
   }
 
-  // Run selected tools
-  const selectedTools = selectTools(message, context)
-  const toolResults: { label: string; result: unknown }[] = []
-  const allDataUsed: string[] = []
-
-  for (const tool of selectedTools) {
-    try {
-      const fn = AI_TOOLS[tool.toolName] as (...args: unknown[]) => { data: unknown; dataUsed: string[]; missingData?: string[] }
-      const result = fn(...tool.args)
-      toolResults.push({ label: tool.label, result: result.data })
-      allDataUsed.push(...result.dataUsed)
-    } catch (err) {
-      toolResults.push({ label: tool.label, result: { error: String(err) } })
-    }
+  // Fetch real data from the database (RLS filters by the user's company automatically)
+  let toolResults: { label: string; result: unknown }[] = []
+  let dataUsed: string[] = []
+  try {
+    const ctx = await buildAssistantContext(supabase, message, {
+      page: context.page,
+      propertyId: context.propertyId,
+    })
+    toolResults = ctx.toolResults
+    dataUsed = ctx.dataUsed
+  } catch (err) {
+    console.error('[ai/assistant] context build failed:', err)
+    // Continue with empty context — the AI will say no data is available
   }
 
-  // Build context message for the AI
+  // Build user context string
   const contextParts: string[] = []
   if (context.page) contextParts.push(`Current page: ${context.page}`)
-  if (context.propertyCode) contextParts.push(`Selected property: ${context.propertyCode}`)
+  if (context.propertyId) contextParts.push(`Property context (ID: ${context.propertyId})`)
 
   const dataContext = toolResults.length
-    ? `\n\nDATA FROM SYSTEM (mock data):\n${JSON.stringify(toolResults, null, 2)}`
-    : ''
+    ? `\n\nDATA FROM SYSTEM (live app data):\n${JSON.stringify(toolResults, null, 2)}`
+    : '\n\nDATA FROM SYSTEM: No data loaded for this query.'
 
   const contextString = contextParts.length
     ? `\n\nUSER CONTEXT:\n${contextParts.join('\n')}`
@@ -204,27 +136,24 @@ export async function POST(request: Request) {
 
     const answer = completion.choices[0]?.message?.content ?? 'No response generated.'
 
-    // Deduplicate data used list
-    const uniqueDataUsed = [...new Set(allDataUsed)]
-
     return NextResponse.json({
       answer,
-      dataUsed: uniqueDataUsed,
-      usingMockData: true,
+      dataUsed: [...new Set(dataUsed)],
+      usingMockData: false,
       context: {
         page: context.page,
-        propertyCode: context.propertyCode,
+        propertyId: context.propertyId,
       },
     })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    const isAuthError = message.includes('401') || message.includes('API key') || message.includes('Incorrect API key')
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    const isAuthError = msg.includes('401') || msg.includes('API key') || msg.includes('Incorrect API key')
 
     return NextResponse.json(
       {
         error: isAuthError
           ? 'Invalid OpenAI API key. Check OPENAI_API_KEY in Vercel environment variables.'
-          : `OpenAI error: ${message}`,
+          : `OpenAI error: ${msg}`,
       },
       { status: 500 }
     )
