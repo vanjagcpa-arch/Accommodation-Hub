@@ -162,11 +162,14 @@ export async function toggleBuildingElectricity(
   manages: boolean
 ): Promise<{ error: string | null }> {
   try {
-    const supabase = await createClient()
+    const { supabase, user, companyId } = await currentContext()
+    if (!user || !companyId) return { error: 'Not signed in.' }
+
     const { error } = await supabase
       .from('buildings')
       .update({ manages_electricity: manages, updated_at: new Date().toISOString() })
       .eq('id', buildingId)
+      .eq('company_id', companyId)
 
     if (error) {
       console.error('[buildings/toggleBuildingElectricity]', error.message)
@@ -174,6 +177,8 @@ export async function toggleBuildingElectricity(
     }
 
     await supabase.from('audit_logs').insert({
+      company_id: companyId,
+      user_id: user.id,
       action: 'updated',
       entity_type: 'building',
       entity_id: buildingId,
@@ -195,11 +200,14 @@ export async function toggleBuildingMaintenance(
   manages: boolean
 ): Promise<{ error: string | null }> {
   try {
-    const supabase = await createClient()
+    const { supabase, user, companyId } = await currentContext()
+    if (!user || !companyId) return { error: 'Not signed in.' }
+
     const { error } = await supabase
       .from('buildings')
       .update({ manages_maintenance: manages, updated_at: new Date().toISOString() })
       .eq('id', buildingId)
+      .eq('company_id', companyId)
 
     if (error) {
       console.error('[buildings/toggleBuildingMaintenance]', error.message)
@@ -207,6 +215,8 @@ export async function toggleBuildingMaintenance(
     }
 
     await supabase.from('audit_logs').insert({
+      company_id: companyId,
+      user_id: user.id,
       action: 'updated',
       entity_type: 'building',
       entity_id: buildingId,

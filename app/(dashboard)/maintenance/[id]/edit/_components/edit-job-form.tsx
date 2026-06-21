@@ -22,6 +22,7 @@ interface Props {
 export function EditJobForm({ job, options }: Props) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(updateMaintenanceJob, { error: null })
   const [building, setBuilding] = useState(job.building_id ?? '')
+  const [propertyId, setPropertyId] = useState(job.property_id ?? '')
   const [priority, setPriority] = useState(job.priority ?? 'medium')
 
   const properties = building
@@ -75,14 +76,14 @@ export function EditJobForm({ job, options }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="building_id">Building</Label>
-              <select id="building_id" name="building_id" className={selectClass} value={building} onChange={(e) => setBuilding(e.target.value)}>
+              <select id="building_id" name="building_id" className={selectClass} value={building} onChange={(e) => { setBuilding(e.target.value); setPropertyId('') }}>
                 <option value="">Select building…</option>
                 {options.buildings.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </div>
             <div>
               <Label htmlFor="property_id">Property / Room</Label>
-              <select id="property_id" name="property_id" className={selectClass} defaultValue={job.property_id ?? ''}>
+              <select id="property_id" name="property_id" className={selectClass} value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
                 <option value="">Select property…</option>
                 {properties.map((p) => <option key={p.id} value={p.id}>Unit {p.unit_number}</option>)}
               </select>

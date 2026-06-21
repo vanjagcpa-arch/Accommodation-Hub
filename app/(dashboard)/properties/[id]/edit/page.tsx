@@ -37,9 +37,14 @@ async function getBuildings() {
 async function getManagers() {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle()
+    if (!profile?.company_id) return []
     const { data } = await supabase
       .from('profiles')
       .select('id, first_name, last_name')
+      .eq('company_id', profile.company_id)
       .eq('is_active', true)
       .order('first_name')
     return (data ?? []) as { id: string; first_name: string; last_name: string }[]

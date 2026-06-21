@@ -38,6 +38,7 @@ async function getSettingsData() {
       supabase
         .from('properties')
         .select('id', { count: 'exact', head: true })
+        .eq('company_id', company_id)
         .eq('is_active', true),
     ])
 

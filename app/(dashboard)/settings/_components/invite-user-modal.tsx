@@ -7,15 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { inviteUser, type ActionState } from '@/lib/users/actions'
-
-const ROLES = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'internal_manager', label: 'Internal Manager' },
-  { value: 'external_manager', label: 'External Manager' },
-  { value: 'referral_agent', label: 'Referral Agent' },
-  { value: 'maintenance_staff', label: 'Maintenance Staff' },
-  { value: 'read_only', label: 'Read Only' },
-]
+import { ROLES } from '@/lib/users/roles'
 
 interface Props {
   open: boolean

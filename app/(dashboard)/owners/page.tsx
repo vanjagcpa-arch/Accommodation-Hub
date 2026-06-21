@@ -17,9 +17,16 @@ interface Owner {
 async function getOwners(): Promise<{ owners: Owner[]; error: string | null }> {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { owners: [], error: null }
+    const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle()
+    const companyId = profile?.company_id
+    if (!companyId) return { owners: [], error: null }
+
     const { data, error } = await supabase
       .from('owners')
       .select('id, first_name, last_name, email, phone, company_name, is_active')
+      .eq('company_id', companyId)
       .order('last_name')
     if (error) return { owners: [], error: error.message }
     return { owners: (data ?? []) as Owner[], error: null }
