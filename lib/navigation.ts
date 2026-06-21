@@ -20,6 +20,7 @@ import {
   Tag,
   Receipt,
   Layers,
+  UserCheck,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -53,6 +54,7 @@ export const navGroups: NavGroup[] = [
       { name: 'Portfolio', href: '/portfolio', icon: Layers, exact: true },
       { name: 'Buildings', href: '/buildings', icon: Hotel },
       { name: 'Properties', href: '/properties', icon: Building2 },
+      { name: 'Owners', href: '/owners', icon: UserCheck },
       { name: 'Availability', href: '/availability', icon: CalendarDays },
     ],
   },

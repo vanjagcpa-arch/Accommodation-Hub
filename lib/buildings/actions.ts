@@ -94,6 +94,69 @@ export async function createBuilding(_prev: ActionState, formData: FormData): Pr
   redirect('/buildings')
 }
 
+export async function updateBuilding(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user || !companyId) return { error: 'You must be signed in.' }
+
+  const id = str(formData, 'id')
+  if (!id) return { error: 'Building ID missing.' }
+
+  const name = str(formData, 'name')
+  if (!name) return { error: 'Building name is required.' }
+  const address = str(formData, 'address')
+  if (!address) return { error: 'Street address is required.' }
+  const suburb = str(formData, 'suburb')
+  if (!suburb) return { error: 'Suburb is required.' }
+  const state = str(formData, 'state')
+  if (!state) return { error: 'State is required.' }
+  const postcode = str(formData, 'postcode')
+  if (!postcode) return { error: 'Postcode is required.' }
+
+  const updates = {
+    name,
+    address,
+    suburb,
+    state,
+    postcode,
+    country: str(formData, 'country') ?? 'Australia',
+    description: str(formData, 'description'),
+    notes: str(formData, 'notes'),
+    primary_manager_id: str(formData, 'primary_manager_id'),
+    reapit_external_id: str(formData, 'reapit_external_id'),
+    listonce_external_id: str(formData, 'listonce_external_id'),
+    myob_external_id: str(formData, 'myob_external_id'),
+    manages_electricity: formData.get('manages_electricity') === 'on',
+    manages_maintenance: formData.get('manages_maintenance') === 'on',
+    updated_by: user.id,
+    updated_at: new Date().toISOString(),
+  }
+
+  const { error } = await supabase
+    .from('buildings')
+    .update(updates)
+    .eq('id', id)
+    .eq('company_id', companyId)
+
+  if (error) {
+    console.error('[buildings/updateBuilding]', error.message, { id, code: error.code })
+    return { error: error.message }
+  }
+
+  await supabase.from('audit_logs').insert({
+    company_id: companyId,
+    user_id: user.id,
+    action: 'updated',
+    entity_type: 'building',
+    entity_id: id,
+    new_values: updates,
+    description: `Updated building: ${name}`,
+  })
+
+  revalidatePath('/buildings')
+  revalidatePath('/portfolio')
+  redirect('/buildings')
+}
+
 export async function toggleBuildingElectricity(
   buildingId: string,
   manages: boolean
