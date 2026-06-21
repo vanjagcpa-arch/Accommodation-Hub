@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 
-interface UserRow {
+export interface UserRow {
   id: string
   email: string
   full_name: string | null
@@ -17,35 +17,38 @@ interface UserRow {
   is_active: boolean
 }
 
-interface CompanyRow {
+export interface CompanyRow {
   id: string
-  name: string
+  name: string | null
   abn: string | null
+  address: string | null
   phone: string | null
   email: string | null
-  address: string | null
-}
-
-interface SettingsClientProps {
-  company: CompanyRow | null
-  users: UserRow[]
-  buildingCount: number
-  propertyCount: number
 }
 
 const roleLabels: Record<string, { label: string; variant: 'success' | 'info' | 'purple' | 'warning' | 'gray' | 'danger' }> = {
-  super_admin:       { label: 'Super Admin',       variant: 'danger' },
-  admin:             { label: 'Admin',             variant: 'success' },
-  internal_manager:  { label: 'Internal Manager',  variant: 'info' },
-  external_manager:  { label: 'External Manager',  variant: 'purple' },
-  referral_agent:    { label: 'Referral Agent',    variant: 'warning' },
+  super_admin: { label: 'Super Admin', variant: 'danger' },
+  admin: { label: 'Admin', variant: 'success' },
+  internal_manager: { label: 'Internal Manager', variant: 'info' },
+  external_manager: { label: 'External Manager', variant: 'purple' },
+  referral_agent: { label: 'Referral Agent', variant: 'warning' },
   maintenance_staff: { label: 'Maintenance Staff', variant: 'gray' },
-  read_only:         { label: 'Read Only',         variant: 'gray' },
+  read_only: { label: 'Read Only', variant: 'gray' },
 }
 
-const tabs = ['General', 'Users & Roles', 'Companies', 'Notifications']
+const settingsTabs = ['General', 'Users & Roles', 'Companies', 'Notifications']
 
-export default function SettingsClient({ company, users, buildingCount, propertyCount }: SettingsClientProps) {
+export default function SettingsClient({
+  users,
+  company,
+  buildingCount,
+  propertyCount,
+}: {
+  users: UserRow[]
+  company: CompanyRow | null
+  buildingCount: number
+  propertyCount: number
+}) {
   const [activeTab, setActiveTab] = useState('General')
 
   return (
@@ -56,7 +59,7 @@ export default function SettingsClient({ company, users, buildingCount, property
       </div>
 
       <div className="flex gap-1 border-b border-slate-200">
-        {tabs.map((tab) => (
+        {settingsTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -154,14 +157,14 @@ export default function SettingsClient({ company, users, buildingCount, property
             </CardHeader>
             <CardContent className="p-0">
               {users.length === 0 ? (
-                <div className="py-10 text-center text-sm text-slate-400">
+                <div className="py-10 text-center text-sm text-slate-500">
                   No users found for this organisation.
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
                   {users.map((user) => {
                     const displayName = user.full_name || user.email
-                    const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+                    const initials = displayName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
                     const role = roleLabels[user.role] ?? { label: user.role, variant: 'gray' as const }
                     return (
                       <div key={user.id} className="flex items-center justify-between px-6 py-4">
@@ -175,8 +178,10 @@ export default function SettingsClient({ company, users, buildingCount, property
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          {!user.is_active && <Badge variant="gray">Inactive</Badge>}
                           <Badge variant={role.variant}>{role.label}</Badge>
+                          {!user.is_active && (
+                            <Badge variant="gray">Inactive</Badge>
+                          )}
                           <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
                             <Pencil className="h-4 w-4" />
                           </button>
@@ -210,22 +215,22 @@ export default function SettingsClient({ company, users, buildingCount, property
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {[
-                      ['View Properties',    '✓', '✓', '✓', '✓', '✓', '✓'],
-                      ['Edit Properties',    '✓', '✓', '✓ (assigned)', '✕', '✕', '✕'],
-                      ['View Tenants',       '✓', '✓', '✓ (assigned)', '✕', '✕', '✕'],
-                      ['Manage Applications','✓', '✓', '✓ (assigned)', '✓ (own)', '✕', '✕'],
-                      ['View Maintenance',   '✓', '✓', '✓', '✕', '✓ (assigned)', '✓'],
-                      ['Edit Maintenance',   '✓', '✓', '✓', '✕', '✓ (assigned)', '✕'],
+                      ['View Properties', '✓', '✓', '✓', '✓', '✓', '✓'],
+                      ['Edit Properties', '✓', '✓', '✓ (assigned)', '✕', '✕', '✕'],
+                      ['View Tenants', '✓', '✓', '✓ (assigned)', '✕', '✕', '✕'],
+                      ['Manage Applications', '✓', '✓', '✓ (assigned)', '✓ (own)', '✕', '✕'],
+                      ['View Maintenance', '✓', '✓', '✓', '✕', '✓ (assigned)', '✓'],
+                      ['Edit Maintenance', '✓', '✓', '✓', '✕', '✓ (assigned)', '✕'],
                       ['Electricity Module', '✓', '✓', '✓', '✕', '✕', '✓'],
-                      ['Reporting',          '✓', '✓', '✕', '✕', '✕', '✓'],
-                      ['User Management',    '✓', '✕', '✕', '✕', '✕', '✕'],
-                      ['Integrations',       '✓', '✕', '✕', '✕', '✕', '✕'],
+                      ['Reporting', '✓', '✓', '✕', '✕', '✕', '✓'],
+                      ['User Management', '✓', '✕', '✕', '✕', '✕', '✕'],
+                      ['Integrations', '✓', '✕', '✕', '✕', '✕', '✕'],
                     ].map(([perm, ...perms]) => (
                       <tr key={perm}>
                         <td className="py-2 px-3 text-slate-700 font-medium">{perm}</td>
                         {perms.map((val, i) => (
                           <td key={i} className="py-2 px-3 text-center">
-                            <span className={val === '✓' ? 'text-green-600 font-semibold' : val?.startsWith('✓') ? 'text-amber-600' : 'text-slate-300'}>
+                            <span className={val === '✓' ? 'text-green-600 font-semibold' : val.startsWith('✓') ? 'text-amber-600' : 'text-slate-300'}>
                               {val}
                             </span>
                           </td>
@@ -260,8 +265,7 @@ export default function SettingsClient({ company, users, buildingCount, property
                       <div>
                         <p className="font-medium text-slate-900">{company.name}</p>
                         <p className="text-sm text-slate-500">
-                          {company.abn ? `ABN: ${company.abn} · ` : ''}
-                          {buildingCount} building{buildingCount !== 1 ? 's' : ''} · {propertyCount} {propertyCount !== 1 ? 'properties' : 'property'}
+                          {company.abn ? `ABN: ${company.abn} · ` : ''}{buildingCount} buildings · {propertyCount} properties
                         </p>
                       </div>
                     </div>
@@ -272,7 +276,7 @@ export default function SettingsClient({ company, users, buildingCount, property
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-400 py-4 text-center">No company record found.</p>
+                <p className="text-sm text-slate-500 py-4 text-center">No company information available.</p>
               )}
             </CardContent>
           </Card>
@@ -285,22 +289,22 @@ export default function SettingsClient({ company, users, buildingCount, property
           <CardContent className="space-y-6">
             {[
               { section: 'Maintenance', items: [
-                { id: 'notif_new_job',   label: 'New maintenance job created', desc: 'Notify when a new job is logged' },
-                { id: 'notif_urgent',   label: 'Urgent priority jobs',         desc: 'Immediate alert for urgent jobs' },
-                { id: 'notif_overdue',  label: 'Overdue jobs',                 desc: 'Daily digest of overdue jobs' },
-                { id: 'notif_completed',label: 'Job completed',                 desc: 'Notify when a job is marked complete' },
+                { id: 'notif_new_job', label: 'New maintenance job created', desc: 'Notify when a new job is logged' },
+                { id: 'notif_urgent', label: 'Urgent priority jobs', desc: 'Immediate alert for urgent jobs' },
+                { id: 'notif_overdue', label: 'Overdue jobs', desc: 'Daily digest of overdue jobs' },
+                { id: 'notif_completed', label: 'Job completed', desc: 'Notify when a job is marked complete' },
               ]},
               { section: 'Applications', items: [
-                { id: 'notif_new_app',     label: 'New application received', desc: 'Notify on new tenant application' },
-                { id: 'notif_app_approved',label: 'Application approved',     desc: 'Notify when application is approved' },
+                { id: 'notif_new_app', label: 'New application received', desc: 'Notify on new tenant application' },
+                { id: 'notif_app_approved', label: 'Application approved', desc: 'Notify when application is approved' },
               ]},
               { section: 'Leases', items: [
                 { id: 'notif_lease_expiring', label: 'Lease expiring soon (30 days)', desc: 'Remind when lease is about to end' },
-                { id: 'notif_property_vacant',label: 'Property becoming vacant',      desc: 'Alert when occupancy ends' },
+                { id: 'notif_property_vacant', label: 'Property becoming vacant', desc: 'Alert when occupancy ends' },
               ]},
               { section: 'Electricity', items: [
-                { id: 'notif_consent_pending',label: 'Consent pending',        desc: 'Remind when consent has not been received' },
-                { id: 'notif_export_ready',   label: 'Ezidebit export ready',  desc: 'Notify when a new export file is generated' },
+                { id: 'notif_consent_pending', label: 'Consent pending', desc: 'Remind when consent has not been received' },
+                { id: 'notif_export_ready', label: 'Ezidebit export ready', desc: 'Notify when a new export file is generated' },
               ]},
             ].map(({ section, items }) => (
               <div key={section}>

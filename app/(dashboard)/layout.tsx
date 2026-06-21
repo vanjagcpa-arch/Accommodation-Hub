@@ -4,14 +4,14 @@ import type { HeaderNotification } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/server'
 import { OPEN_STATUSES } from '@/lib/maintenance/constants'
 
-function formatRelativeTime(isoString: string): string {
-  const diffMs = Date.now() - new Date(isoString).getTime()
-  const mins = Math.floor(diffMs / 60000)
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60_000)
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
 }
 
 async function getSidebarData() {
@@ -20,9 +20,9 @@ async function getSidebarData() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const sevenDaysAgoISO = sevenDaysAgo.toISOString()
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
 
     const [profileRes, appCountRes, mainCountRes, urgentJobsRes, newAppsRes] = await Promise.all([
       supabase.from('profiles').select('full_name, role, company_id').eq('id', user.id).maybeSingle(),
@@ -30,20 +30,20 @@ async function getSidebarData() {
       supabase.from('maintenance_jobs').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES).eq('is_active', true),
       supabase
         .from('maintenance_jobs')
-        .select('id, title, priority, created_at')
+        .select('id, title, created_at')
         .in('priority', ['urgent', 'high'])
         .in('status', OPEN_STATUSES)
         .eq('is_active', true)
-        .gte('created_at', sevenDaysAgoISO)
+        .gte('created_at', sevenDaysAgo)
         .order('created_at', { ascending: false })
-        .limit(4),
+        .limit(5),
       supabase
         .from('applications')
-        .select('id, applicant_first_name, applicant_last_name, created_at')
+        .select('id, created_at, applicant_first_name, applicant_last_name')
         .eq('status', 'new')
-        .gte('created_at', sevenDaysAgoISO)
+        .gte('created_at', sevenDaysAgo)
         .order('created_at', { ascending: false })
-        .limit(3),
+        .limit(5),
     ])
 
     let companyName = 'AccomHub'
@@ -52,21 +52,20 @@ async function getSidebarData() {
       if (compRes.data?.name) companyName = compRes.data.name
     }
 
-    const urgentNotifs: HeaderNotification[] = (urgentJobsRes.data ?? []).map(j => ({
-      id: j.id,
-      text: `${j.priority === 'urgent' ? 'Urgent' : 'High priority'} job: ${j.title}`,
-      time: formatRelativeTime(j.created_at),
-      unread: Date.now() - new Date(j.created_at).getTime() < 4 * 3600000,
-    }))
-
-    const appNotifs: HeaderNotification[] = (newAppsRes.data ?? []).map(a => ({
-      id: a.id,
-      text: `New application: ${a.applicant_first_name} ${a.applicant_last_name}`,
-      time: formatRelativeTime(a.created_at),
-      unread: Date.now() - new Date(a.created_at).getTime() < 2 * 3600000,
-    }))
-
-    const notifications = [...urgentNotifs, ...appNotifs].slice(0, 6)
+    const notifications: HeaderNotification[] = [
+      ...(urgentJobsRes.data ?? []).map(j => ({
+        id: `job-${j.id}`,
+        text: `Urgent maintenance: ${j.title}`,
+        time: formatRelativeTime(j.created_at ?? ''),
+        unread: !!j.created_at && j.created_at > fourHoursAgo,
+      })),
+      ...(newAppsRes.data ?? []).map(a => ({
+        id: `app-${a.id}`,
+        text: `New application: ${[a.applicant_first_name, a.applicant_last_name].filter(Boolean).join(' ') || 'Applicant'}`,
+        time: formatRelativeTime(a.created_at ?? ''),
+        unread: !!a.created_at && a.created_at > twoHoursAgo,
+      })),
+    ].sort((a, b) => (b.unread ? 1 : 0) - (a.unread ? 1 : 0))
 
     return {
       userName: profileRes.data?.full_name ?? user.email ?? 'User',

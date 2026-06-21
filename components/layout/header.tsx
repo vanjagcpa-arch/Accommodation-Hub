@@ -79,8 +79,10 @@ export function Header({ notifications = [] }: { notifications?: HeaderNotificat
 
       {/* Right utilities */}
       <div className="flex items-center gap-2">
+        {/* AI Assistant */}
         <AssistantTrigger />
 
+        {/* Command / search pill */}
         <button className="hidden items-center gap-2 rounded-lg border border-line bg-surface-muted px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:border-line-strong hover:text-ink-muted sm:flex">
           <Search className="h-4 w-4" />
           <span>Search or jump to…</span>
@@ -89,6 +91,7 @@ export function Header({ notifications = [] }: { notifications?: HeaderNotificat
           </span>
         </button>
 
+        {/* Search icon (mobile) */}
         <button className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink sm:hidden">
           <Search className="h-4 w-4" />
         </button>
@@ -122,25 +125,23 @@ export function Header({ notifications = [] }: { notifications?: HeaderNotificat
                     <div className="px-4 py-6 text-center text-[13px] text-ink-faint">
                       No new notifications
                     </div>
-                  ) : (
-                    notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        className="flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-surface-muted"
-                      >
-                        <span
-                          className={cn(
-                            'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
-                            n.unread ? 'bg-primary' : 'bg-line-strong'
-                          )}
-                        />
-                        <div className="min-w-0">
-                          <p className="text-[13px] leading-snug text-ink">{n.text}</p>
-                          <p className="mt-0.5 text-[11px] text-ink-subtle">{n.time}</p>
-                        </div>
+                  ) : notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-surface-muted"
+                    >
+                      <span
+                        className={cn(
+                          'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                          n.unread ? 'bg-primary' : 'bg-line-strong'
+                        )}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[13px] leading-snug text-ink">{n.text}</p>
+                        <p className="mt-0.5 text-[11px] text-ink-subtle">{n.time}</p>
                       </div>
-                    ))
-                  )}
+                    </div>
+                  ))}
                 </div>
                 <div className="border-t border-line px-4 py-2.5">
                   <button className="text-[13px] font-medium text-primary transition-colors hover:text-primary-hover">

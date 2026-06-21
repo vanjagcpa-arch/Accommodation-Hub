@@ -2,8 +2,14 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import SettingsClient from './_components/settings-client'
+import type { UserRow, CompanyRow } from './_components/settings-client'
 
-async function getSettingsData() {
+async function getSettingsData(): Promise<{
+  company: CompanyRow | null
+  users: UserRow[]
+  buildingCount: number
+  propertyCount: number
+} | null> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -15,23 +21,24 @@ async function getSettingsData() {
       .eq('id', user.id)
       .maybeSingle()
 
-    const companyId = profileRes.data?.company_id
-    if (!companyId) return null
+    const company_id = profileRes.data?.company_id
+    if (!company_id) return { company: null, users: [], buildingCount: 0, propertyCount: 0 }
 
     const [companyRes, usersRes, buildingCountRes, propertyCountRes] = await Promise.all([
       supabase
         .from('companies')
-        .select('id, name, abn, phone, email, address')
-        .eq('id', companyId)
+        .select('id, name, abn, address, phone, email')
+        .eq('id', company_id)
         .maybeSingle(),
       supabase
         .from('profiles')
-        .select('id, full_name, email, role, is_active')
-        .eq('company_id', companyId)
+        .select('id, email, full_name, role, is_active')
+        .eq('company_id', company_id)
         .order('full_name'),
       supabase
         .from('buildings')
         .select('id', { count: 'exact', head: true })
+        .eq('company_id', company_id)
         .eq('is_active', true),
       supabase
         .from('properties')
@@ -41,7 +48,7 @@ async function getSettingsData() {
 
     return {
       company: companyRes.data ?? null,
-      users: usersRes.data ?? [],
+      users: (usersRes.data ?? []) as UserRow[],
       buildingCount: buildingCountRes.count ?? 0,
       propertyCount: propertyCountRes.count ?? 0,
     }
