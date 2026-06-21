@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import type { HeaderNotification } from '@/components/layout/header'
@@ -21,8 +22,11 @@ async function getSidebarData() {
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
+    const profileCheck = await supabase.from('profiles').select('full_name, role, company_id').eq('id', user.id).maybeSingle()
+    if (!profileCheck.data?.company_id) return 'needs-setup' as const
+
     const [profileRes, appCountRes, mainCountRes, urgentJobsRes, newAppsRes] = await Promise.all([
-      supabase.from('profiles').select('full_name, role, company_id').eq('id', user.id).maybeSingle(),
+      Promise.resolve(profileCheck),
       supabase.from('applications').select('id', { count: 'exact', head: true }).in('status', ['new', 'reviewing']),
       supabase.from('maintenance_jobs').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES).eq('is_active', true),
       supabase.from('maintenance_jobs')
@@ -81,6 +85,7 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const data = await getSidebarData()
+  if (data === 'needs-setup') redirect('/setup')
 
   return (
     <div className="h-screen w-full bg-canvas p-2 sm:p-3 lg:p-4">
