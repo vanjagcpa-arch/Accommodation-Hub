@@ -73,6 +73,14 @@ export function NewPropertyForm({ buildings, owners }: Props) {
             </Select>
           </div>
 
+          <div>
+            <Label htmlFor="managed_status">Management Type</Label>
+            <Select id="managed_status" name="managed_status" defaultValue="managed">
+              <option value="managed">Managed — we manage this property</option>
+              <option value="external">External — managed by an external PM</option>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="bedrooms">Bedrooms</Label>

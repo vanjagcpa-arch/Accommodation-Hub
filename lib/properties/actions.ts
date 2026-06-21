@@ -8,6 +8,20 @@ export interface ActionState {
   error: string | null
 }
 
+const MANAGED_STATUS_VALUES = ['managed', 'external'] as const
+type ManagedStatus = typeof MANAGED_STATUS_VALUES[number]
+
+function managedStatus(formData: FormData): ManagedStatus {
+  const v = formData.get('managed_status')
+  return v === 'external' ? 'external' : 'managed'
+}
+
+function friendlyDbError(msg: string): string {
+  if (msg.includes('managed_status_check')) return 'Invalid management type — must be "Managed" or "External".'
+  if (msg.includes('properties_status_check')) return 'Invalid status value selected.'
+  return msg
+}
+
 function str(formData: FormData, key: string): string | null {
   const v = formData.get(key)
   if (typeof v !== 'string') return null
@@ -67,6 +81,7 @@ export async function createProperty(_prev: ActionState, formData: FormData): Pr
     building_id: buildingId,
     unit_number: unitNumber,
     property_type: str(formData, 'property_type'),
+    managed_status: managedStatus(formData),
     bedrooms: num(formData, 'bedrooms') ?? 1,
     bathrooms: num(formData, 'bathrooms') ?? 1,
     floor_level: num(formData, 'floor_level'),
@@ -80,7 +95,6 @@ export async function createProperty(_prev: ActionState, formData: FormData): Pr
     internal_notes: str(formData, 'internal_notes'),
     agent_visible: formData.get('agent_visible') === 'on',
     owner_id: str(formData, 'owner_id'),
-    managed_status: 'manual',
     reapit_external_id: str(formData, 'reapit_external_id'),
     listonce_external_id: str(formData, 'listonce_external_id'),
     ezidebit_code: str(formData, 'ezidebit_code'),
@@ -96,8 +110,24 @@ export async function createProperty(_prev: ActionState, formData: FormData): Pr
 
   if (error) {
     console.error('[properties/createProperty]', error.message, { code: error.code })
-    return { error: error.message }
+    return { error: friendlyDbError(error.message) }
   }
+
+  const { error: refErr } = await supabase.from('property_source_refs').upsert(
+    { property_id: data.id, source: 'manual', sync_status: 'not_connected' },
+    { onConflict: 'property_id,source', ignoreDuplicates: true }
+  )
+  if (refErr) console.error('[properties/createProperty] source_ref', refErr.message)
+
+  const { error: logErr } = await supabase.from('property_sync_logs').insert({
+    property_id: data.id,
+    source: 'manual',
+    status: 'success',
+    message: `Unit ${unitNumber} created manually`,
+    fields_updated: Object.keys(payload),
+    triggered_by: user.id,
+  })
+  if (logErr) console.error('[properties/createProperty] sync_log', logErr.message)
 
   await supabase.from('audit_logs').insert({
     company_id: companyId,
@@ -147,6 +177,7 @@ export async function updateProperty(_prev: ActionState, formData: FormData): Pr
     building_id: buildingId,
     unit_number: unitNumber,
     property_type: str(formData, 'property_type'),
+    managed_status: managedStatus(formData),
     bedrooms: num(formData, 'bedrooms') ?? 1,
     bathrooms: num(formData, 'bathrooms') ?? 1,
     floor_level: num(formData, 'floor_level'),
@@ -176,8 +207,24 @@ export async function updateProperty(_prev: ActionState, formData: FormData): Pr
 
   if (error) {
     console.error('[properties/updateProperty]', error.message, { id, code: error.code })
-    return { error: error.message }
+    return { error: friendlyDbError(error.message) }
   }
+
+  const { error: refErr } = await supabase.from('property_source_refs').upsert(
+    { property_id: id, source: 'manual', sync_status: 'not_connected' },
+    { onConflict: 'property_id,source', ignoreDuplicates: true }
+  )
+  if (refErr) console.error('[properties/updateProperty] source_ref', refErr.message)
+
+  const { error: logErr } = await supabase.from('property_sync_logs').insert({
+    property_id: id,
+    source: 'manual',
+    status: 'success',
+    message: `Unit ${unitNumber} updated manually`,
+    fields_updated: Object.keys(updates),
+    triggered_by: user.id,
+  })
+  if (logErr) console.error('[properties/updateProperty] sync_log', logErr.message)
 
   await supabase.from('audit_logs').insert({
     company_id: companyId,

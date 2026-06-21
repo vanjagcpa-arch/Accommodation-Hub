@@ -15,6 +15,7 @@ interface Property {
   building_id: string
   unit_number: string
   property_type: string | null
+  managed_status: string
   bedrooms: number
   bathrooms: number
   floor_level: number | null
@@ -102,6 +103,14 @@ export function EditPropertyForm({ property, buildings, managers, owners }: Prop
                   {o.first_name} {o.last_name}{o.company_name ? ` (${o.company_name})` : ''}
                 </option>
               ))}
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="managed_status">Management Type</Label>
+            <Select id="managed_status" name="managed_status" defaultValue={property.managed_status ?? 'managed'}>
+              <option value="managed">Managed — we manage this property</option>
+              <option value="external">External — managed by an external PM</option>
             </Select>
           </div>
 

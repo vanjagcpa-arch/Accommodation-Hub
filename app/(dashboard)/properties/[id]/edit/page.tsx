@@ -11,7 +11,7 @@ async function getProperty(id: string) {
     const supabase = await createClient()
     const { data } = await supabase
       .from('properties')
-      .select('id, building_id, unit_number, property_type, bedrooms, bathrooms, floor_level, size_sqm, rent_amount, bond_amount, status, available_date, features, notes, internal_notes, agent_visible, owner_id, assigned_manager_id, reapit_external_id, listonce_external_id, ezidebit_code')
+      .select('id, building_id, unit_number, property_type, managed_status, bedrooms, bathrooms, floor_level, size_sqm, rent_amount, bond_amount, status, available_date, features, notes, internal_notes, agent_visible, owner_id, assigned_manager_id, reapit_external_id, listonce_external_id, ezidebit_code')
       .eq('id', id)
       .maybeSingle()
     return data
