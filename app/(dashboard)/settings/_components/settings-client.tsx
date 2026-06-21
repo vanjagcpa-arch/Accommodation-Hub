@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { InviteUserModal } from './invite-user-modal'
+import { EditUserModal } from './edit-user-modal'
 
 export interface UserRow {
   id: string
@@ -50,6 +52,14 @@ export default function SettingsClient({
   propertyCount: number
 }) {
   const [activeTab, setActiveTab] = useState('General')
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteKey, setInviteKey] = useState(0)
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null)
+
+  const openInvite = () => {
+    setInviteKey(k => k + 1)
+    setInviteOpen(true)
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -152,7 +162,7 @@ export default function SettingsClient({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Platform Users</CardTitle>
-                <Button size="sm"><Plus className="h-4 w-4" />Invite User</Button>
+                <Button size="sm" onClick={openInvite}><Plus className="h-4 w-4" />Invite User</Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -186,7 +196,11 @@ export default function SettingsClient({
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge variant={role.variant}>{role.label}</Badge>
-                          <button className="p-1.5 text-ink-faint hover:text-ink-muted hover:bg-surface-muted rounded-md">
+                          <button
+                            type="button"
+                            onClick={() => setEditingUser(user)}
+                            className="p-1.5 text-ink-faint hover:text-ink-muted hover:bg-surface-muted rounded-md"
+                          >
                             <Pencil className="h-4 w-4" />
                           </button>
                         </div>
@@ -331,6 +345,9 @@ export default function SettingsClient({
           </CardContent>
         </Card>
       )}
+
+      <InviteUserModal key={inviteKey} open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <EditUserModal key={editingUser?.id} user={editingUser} onClose={() => setEditingUser(null)} />
     </div>
   )
 }
