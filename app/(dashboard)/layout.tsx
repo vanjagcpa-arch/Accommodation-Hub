@@ -1,8 +1,16 @@
+import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import type { HeaderNotification } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/server'
 import { OPEN_STATUSES } from '@/lib/maintenance/constants'
+import {
+  canAccessModule,
+  getAccessibleModules,
+  SEGMENT_TO_MODULE,
+  MODULE_DEFAULT_ROUTE,
+} from '@/lib/permissions'
 
 function formatRelativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime()
@@ -21,8 +29,11 @@ async function getSidebarData() {
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
+    const profileCheck = await supabase.from('profiles').select('full_name, role, company_id').eq('id', user.id).maybeSingle()
+    if (!profileCheck.data?.company_id) return 'needs-setup' as const
+
     const [profileRes, appCountRes, mainCountRes, urgentJobsRes, newAppsRes] = await Promise.all([
-      supabase.from('profiles').select('full_name, role, company_id').eq('id', user.id).maybeSingle(),
+      Promise.resolve(profileCheck),
       supabase.from('applications').select('id', { count: 'exact', head: true }).in('status', ['new', 'reviewing']),
       supabase.from('maintenance_jobs').select('id', { count: 'exact', head: true }).in('status', OPEN_STATUSES).eq('is_active', true),
       supabase.from('maintenance_jobs')
@@ -81,6 +92,19 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const data = await getSidebarData()
+  if (data === 'needs-setup') redirect('/setup')
+
+  // Module-level access guard: redirect to the first allowed module if the
+  // user navigates to a route their role cannot access.
+  const hdrs = await headers()
+  const pathname = hdrs.get('x-pathname') ?? '/'
+  const segment = pathname.split('/')[1] ?? ''
+  const requiredModule = SEGMENT_TO_MODULE[segment]
+  const role = data?.userRole ?? 'read_only'
+  if (requiredModule && !canAccessModule(role, requiredModule)) {
+    const accessible = getAccessibleModules(role)
+    redirect(accessible.length > 0 ? MODULE_DEFAULT_ROUTE[accessible[0]] : '/dashboard')
+  }
 
   return (
     <div className="h-screen w-full bg-canvas p-2 sm:p-3 lg:p-4">

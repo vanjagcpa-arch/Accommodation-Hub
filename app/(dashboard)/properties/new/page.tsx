@@ -5,22 +5,32 @@ import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { NewPropertyForm } from './_components/new-property-form'
 
-async function getBuildings() {
+async function getFormData() {
   try {
     const supabase = await createClient()
-    const { data } = await supabase
-      .from('buildings')
-      .select('id, name, address, suburb')
-      .eq('is_active', true)
-      .order('name')
-    return (data ?? []) as { id: string; name: string; address: string | null; suburb: string | null }[]
+    const [buildingsRes, ownersRes] = await Promise.all([
+      supabase
+        .from('buildings')
+        .select('id, name, address, suburb')
+        .eq('is_active', true)
+        .order('name'),
+      supabase
+        .from('owners')
+        .select('id, first_name, last_name, company_name')
+        .eq('is_active', true)
+        .order('last_name'),
+    ])
+    return {
+      buildings: (buildingsRes.data ?? []) as { id: string; name: string; address: string | null; suburb: string | null }[],
+      owners: (ownersRes.data ?? []) as { id: string; first_name: string; last_name: string; company_name: string | null }[],
+    }
   } catch {
-    return []
+    return { buildings: [], owners: [] }
   }
 }
 
 export default async function NewPropertyPage() {
-  const buildings = await getBuildings()
+  const { buildings, owners } = await getFormData()
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -38,7 +48,7 @@ export default async function NewPropertyPage() {
         <p className="text-ink-muted text-sm mt-0.5">Add a new property to a building</p>
       </div>
 
-      <NewPropertyForm buildings={buildings} />
+      <NewPropertyForm buildings={buildings} owners={owners} />
     </div>
   )
 }

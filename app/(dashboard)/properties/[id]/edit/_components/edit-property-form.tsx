@@ -27,6 +27,7 @@ interface Property {
   notes: string | null
   internal_notes: string | null
   agent_visible: boolean
+  owner_id: string | null
   assigned_manager_id: string | null
   reapit_external_id: string | null
   listonce_external_id: string | null
@@ -36,7 +37,8 @@ interface Property {
 interface Props {
   property: Property
   buildings: { id: string; name: string; address: string | null; suburb: string | null }[]
-  managers: { id: string; first_name: string; last_name: string }[]
+  managers: { id: string; full_name: string | null }[]
+  owners: { id: string; first_name: string; last_name: string; company_name: string | null }[]
 }
 
 const ALL_FEATURES = [
@@ -45,7 +47,7 @@ const ALL_FEATURES = [
   'Courtyard access', 'Bike storage', 'High-speed internet',
 ]
 
-export function EditPropertyForm({ property, buildings, managers }: Props) {
+export function EditPropertyForm({ property, buildings, managers, owners }: Props) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(updateProperty, { error: null })
 
   return (
@@ -92,11 +94,23 @@ export function EditPropertyForm({ property, buildings, managers }: Props) {
           </div>
 
           <div>
+            <Label htmlFor="owner_id">Owner / Landlord</Label>
+            <Select id="owner_id" name="owner_id" defaultValue={property.owner_id ?? ''}>
+              <option value="">No owner assigned</option>
+              {owners.map(o => (
+                <option key={o.id} value={o.id}>
+                  {o.first_name} {o.last_name}{o.company_name ? ` (${o.company_name})` : ''}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div>
             <Label htmlFor="assigned_manager_id">Assigned Manager</Label>
             <Select id="assigned_manager_id" name="assigned_manager_id" defaultValue={property.assigned_manager_id ?? ''}>
               <option value="">No manager assigned</option>
               {managers.map(m => (
-                <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
+                <option key={m.id} value={m.id}>{m.full_name ?? m.id}</option>
               ))}
             </Select>
           </div>

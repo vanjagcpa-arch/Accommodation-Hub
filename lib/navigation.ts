@@ -23,6 +23,7 @@ import {
   UserCheck,
   type LucideIcon,
 } from 'lucide-react'
+import type { Module } from '@/lib/permissions'
 
 export interface NavItem {
   name: string
@@ -35,6 +36,7 @@ export interface NavItem {
 export interface NavGroup {
   label: string
   icon: LucideIcon
+  module: Module
   items: NavItem[]
 }
 
@@ -42,6 +44,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Overview',
     icon: LayoutDashboard,
+    module: 'overview',
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Reporting', href: '/reporting', icon: BarChart3 },
@@ -50,6 +53,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Portfolio',
     icon: Building2,
+    module: 'portfolio',
     items: [
       { name: 'Portfolio', href: '/portfolio', icon: Layers, exact: true },
       { name: 'Buildings', href: '/buildings', icon: Hotel },
@@ -61,6 +65,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Leasing',
     icon: ClipboardList,
+    module: 'leasing',
     items: [
       { name: 'Applications', href: '/applications', icon: ClipboardList },
       { name: 'Tenants', href: '/tenants', icon: User },
@@ -71,6 +76,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Maintenance',
     icon: Wrench,
+    module: 'maintenance',
     items: [
       { name: 'Work Orders', href: '/maintenance', icon: Wrench, exact: true },
       { name: 'Properties', href: '/maintenance/properties', icon: Building2 },
@@ -85,6 +91,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Electricity',
     icon: Zap,
+    module: 'electricity',
     items: [
       { name: 'Overview', href: '/electricity', icon: Zap, exact: true },
       { name: 'Tenants', href: '/electricity/tenants', icon: User },
@@ -96,6 +103,7 @@ export const navGroups: NavGroup[] = [
   {
     label: 'System',
     icon: Settings,
+    module: 'system',
     items: [
       { name: 'Integrations', href: '/integrations', icon: Link2 },
       { name: 'Settings', href: '/settings', icon: Settings },

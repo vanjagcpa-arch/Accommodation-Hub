@@ -4,9 +4,14 @@ import { updateSession } from '@/lib/supabase/middleware'
 export async function proxy(request: NextRequest) {
   // Health check must be reachable by monitoring tools without a session.
   if (request.nextUrl.pathname === '/api/health') {
-    return NextResponse.next({ request })
+    const res = NextResponse.next({ request })
+    res.headers.set('x-pathname', request.nextUrl.pathname)
+    return res
   }
-  return await updateSession(request)
+  const response = await updateSession(request)
+  // Forward pathname so server layouts can enforce module-level access control.
+  response.headers.set('x-pathname', request.nextUrl.pathname)
+  return response
 }
 
 export const config = {

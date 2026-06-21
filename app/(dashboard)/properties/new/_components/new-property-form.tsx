@@ -12,9 +12,10 @@ import { createProperty, type ActionState } from '@/lib/properties/actions'
 
 interface Props {
   buildings: { id: string; name: string; address: string | null; suburb: string | null }[]
+  owners: { id: string; first_name: string; last_name: string; company_name: string | null }[]
 }
 
-export function NewPropertyForm({ buildings }: Props) {
+export function NewPropertyForm({ buildings, owners }: Props) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createProperty, { error: null })
 
   return (
@@ -58,6 +59,18 @@ export function NewPropertyForm({ buildings }: Props) {
                 <option value="Room">Room (Shared)</option>
               </Select>
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="owner_id">Owner / Landlord</Label>
+            <Select id="owner_id" name="owner_id">
+              <option value="">No owner assigned</option>
+              {owners.map(o => (
+                <option key={o.id} value={o.id}>
+                  {o.first_name} {o.last_name}{o.company_name ? ` (${o.company_name})` : ''}
+                </option>
+              ))}
+            </Select>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
