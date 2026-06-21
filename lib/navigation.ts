@@ -61,6 +61,7 @@ export const navGroups: NavGroup[] = [
       { name: 'Applications', href: '/applications', icon: ClipboardList },
       { name: 'Tenants', href: '/tenants', icon: User },
       { name: 'Agents', href: '/agents', icon: Users },
+      { name: 'Agent Portal', href: '/agents/portal', icon: Link2 },
     ],
   },
   {
@@ -68,6 +69,7 @@ export const navGroups: NavGroup[] = [
     icon: Wrench,
     items: [
       { name: 'Work Orders', href: '/maintenance', icon: Wrench, exact: true },
+      { name: 'Properties', href: '/maintenance/properties', icon: Building2 },
       { name: 'My Jobs', href: '/maintenance/my-jobs', icon: ListChecks },
       { name: 'Contractors', href: '/maintenance/contractors', icon: Users },
       { name: 'Schedule', href: '/maintenance/schedule', icon: Calendar },

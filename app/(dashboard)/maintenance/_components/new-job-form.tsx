@@ -13,9 +13,15 @@ import type { MaintenanceFormOptions } from '@/types'
 const selectClass =
   'flex h-9 w-full appearance-none rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-ring/50'
 
-export function NewJobForm({ options }: { options: MaintenanceFormOptions }) {
+interface NewJobFormProps {
+  options: MaintenanceFormOptions
+  defaultBuildingId?: string
+  defaultPropertyId?: string
+}
+
+export function NewJobForm({ options, defaultBuildingId, defaultPropertyId }: NewJobFormProps) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createMaintenanceJob, { error: null })
-  const [building, setBuilding] = useState('')
+  const [building, setBuilding] = useState(defaultBuildingId ?? '')
   const [priority, setPriority] = useState('medium')
 
   const properties = building
@@ -76,7 +82,7 @@ export function NewJobForm({ options }: { options: MaintenanceFormOptions }) {
             </div>
             <div>
               <Label htmlFor="property_id">Property / Room</Label>
-              <select id="property_id" name="property_id" className={selectClass} defaultValue="">
+              <select id="property_id" name="property_id" className={selectClass} defaultValue={defaultPropertyId ?? ''}>
                 <option value="">Select property…</option>
                 {properties.map((p) => <option key={p.id} value={p.id}>Unit {p.unit_number}</option>)}
               </select>

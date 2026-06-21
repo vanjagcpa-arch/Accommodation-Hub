@@ -1,29 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import { TrendingUp, Users, Wrench, Building2, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { getMaintenanceAnalytics } from '@/lib/maintenance/queries'
-
-export const dynamic = 'force-dynamic'
-
-const buildingOccupancy = [
-  { name: 'Parkview Apts', total: 12, occupied: 9 },
-  { name: 'University Gardens', total: 20, occupied: 16 },
-  { name: 'Flinders House', total: 8, occupied: 6 },
-  { name: 'Brunswick Studios', total: 15, occupied: 11 },
-  { name: 'Fitzroy Terrace', total: 10, occupied: 8 },
-  { name: 'Monash Towers', total: 24, occupied: 20 },
-  { name: 'St Kilda Res.', total: 6, occupied: 4 },
-  { name: 'Hawthorn Court', total: 18, occupied: 15 },
-  { name: 'Docklands Point', total: 30, occupied: 24 },
-  { name: 'Footscray Heights', total: 16, occupied: 12 },
-]
-
-const applicationsThisMonth = [
-  { week: 'Week 1', count: 4 },
-  { week: 'Week 2', count: 6 },
-  { week: 'Week 3', count: 3 },
-  { week: 'Week 4 (partial)', count: 2 },
-]
+import { getBuildings } from '@/lib/buildings/queries'
+import { createClient } from '@/lib/supabase/server'
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-blue-400', triage: 'bg-purple-400', assigned: 'bg-slate-400',
@@ -40,18 +22,67 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const CLOSED_STATUSES = new Set(['completed', 'closed', 'cancelled', 'duplicate'])
 
+async function getPortfolioStats() {
+  try {
+    const supabase = await createClient()
+    const [tenantCount] = await Promise.all([
+      supabase.from('tenants').select('id', { count: 'exact', head: true }).eq('is_active', true),
+    ])
+    return { activeTenants: tenantCount.count ?? 0 }
+  } catch {
+    return { activeTenants: 0 }
+  }
+}
+
+async function getApplicationStats() {
+  try {
+    const supabase = await createClient()
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+    const [allRes, statusRes] = await Promise.all([
+      supabase
+        .from('applications')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', monthStart),
+      supabase
+        .from('applications')
+        .select('status')
+        .gte('created_at', monthStart),
+    ])
+
+    const statusCounts: Record<string, number> = {}
+    for (const a of statusRes.data ?? []) {
+      const s = a.status as string
+      statusCounts[s] = (statusCounts[s] ?? 0) + 1
+    }
+
+    return {
+      total: allRes.count ?? 0,
+      approved: statusCounts['approved'] ?? 0,
+      reviewing: (statusCounts['new'] ?? 0) + (statusCounts['reviewing'] ?? 0),
+      rejected: statusCounts['rejected'] ?? 0,
+    }
+  } catch {
+    return { total: 0, approved: 0, reviewing: 0, rejected: 0 }
+  }
+}
+
 type PageProps = { searchParams: Promise<{ tab?: string }> }
 
 export default async function ReportingPage({ searchParams }: PageProps) {
   const { tab = 'maintenance' } = await searchParams
 
-  const analytics = tab === 'maintenance' ? await getMaintenanceAnalytics() : null
+  const [analytics, { buildings }, portfolioStats, appStats] = await Promise.all([
+    tab === 'maintenance' ? getMaintenanceAnalytics() : Promise.resolve(null),
+    tab === 'portfolio' ? getBuildings() : Promise.resolve({ buildings: [] }),
+    tab === 'portfolio' ? getPortfolioStats() : Promise.resolve({ activeTenants: 0 }),
+    tab === 'applications' ? getApplicationStats() : Promise.resolve({ total: 0, approved: 0, reviewing: 0, rejected: 0 }),
+  ])
 
-  const totalProperties = buildingOccupancy.reduce((s, b) => s + b.total, 0)
-  const totalOccupied = buildingOccupancy.reduce((s, b) => s + b.occupied, 0)
-  const overallRate = Math.round((totalOccupied / totalProperties) * 100)
-  const totalApplications = applicationsThisMonth.reduce((s, w) => s + w.count, 0)
-  const maxApps = Math.max(...applicationsThisMonth.map(w => w.count))
+  const totalProperties = buildings.reduce((s, b) => s + (b.total_properties ?? 0), 0)
+  const totalOccupied = buildings.reduce((s, b) => s + b.occupied_count, 0)
+  const overallRate = totalProperties > 0 ? Math.round((totalOccupied / totalProperties) * 100) : 0
 
   const TABS = [
     { id: 'maintenance', label: 'Maintenance' },
@@ -59,22 +90,24 @@ export default async function ReportingPage({ searchParams }: PageProps) {
     { id: 'applications', label: 'Applications' },
   ]
 
+  const currentMonth = new Date().toLocaleString('en-AU', { month: 'long', year: 'numeric' })
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Reporting</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Analytics — June 2026</p>
+        <h1 className="text-2xl font-bold text-ink">Reporting</h1>
+        <p className="text-ink-muted text-sm mt-0.5">Analytics — {currentMonth}</p>
       </div>
 
-      <div className="flex gap-1 border-b border-slate-200">
-        {TABS.map(t => (
+      <div className="flex gap-1 border-b border-line">
+        {TABS.map((t) => (
           <Link
             key={t.id}
             href={`/reporting?tab=${t.id}`}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === t.id
                 ? 'border-primary text-primary'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
             {t.label}
@@ -96,9 +129,9 @@ export default async function ReportingPage({ searchParams }: PageProps) {
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-orange-50 rounded-lg"><Wrench className="h-5 w-5 text-orange-600" /></div>
                 <div>
-                  <p className="text-xs text-slate-500">Open Jobs</p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {analytics.byStatus.filter(s => !CLOSED_STATUSES.has(s.status)).reduce((n, s) => n + s.count, 0)}
+                  <p className="text-xs text-ink-muted">Open Jobs</p>
+                  <p className="text-2xl font-bold text-ink">
+                    {analytics.byStatus.filter((s) => !CLOSED_STATUSES.has(s.status)).reduce((n, s) => n + s.count, 0)}
                   </p>
                 </div>
               </div>
@@ -107,9 +140,9 @@ export default async function ReportingPage({ searchParams }: PageProps) {
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-red-50 rounded-lg"><AlertTriangle className="h-5 w-5 text-red-600" /></div>
                 <div>
-                  <p className="text-xs text-slate-500">Urgent</p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {analytics.byPriority.find(p => p.priority === 'urgent')?.count ?? 0}
+                  <p className="text-xs text-ink-muted">Urgent</p>
+                  <p className="text-2xl font-bold text-ink">
+                    {analytics.byPriority.find((p) => p.priority === 'urgent')?.count ?? 0}
                   </p>
                 </div>
               </div>
@@ -118,8 +151,8 @@ export default async function ReportingPage({ searchParams }: PageProps) {
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-green-50 rounded-lg"><CheckCircle className="h-5 w-5 text-green-600" /></div>
                 <div>
-                  <p className="text-xs text-slate-500">Completed This Month</p>
-                  <p className="text-2xl font-bold text-slate-900">{analytics.completedThisMonth}</p>
+                  <p className="text-xs text-ink-muted">Completed This Month</p>
+                  <p className="text-2xl font-bold text-ink">{analytics.completedThisMonth}</p>
                 </div>
               </div>
             </Card>
@@ -127,8 +160,8 @@ export default async function ReportingPage({ searchParams }: PageProps) {
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-blue-50 rounded-lg"><Clock className="h-5 w-5 text-blue-600" /></div>
                 <div>
-                  <p className="text-xs text-slate-500">Avg Days to Close</p>
-                  <p className="text-2xl font-bold text-slate-900">
+                  <p className="text-xs text-ink-muted">Avg Days to Close</p>
+                  <p className="text-2xl font-bold text-ink">
                     {analytics.avgDaysToComplete !== null ? `${analytics.avgDaysToComplete}d` : '—'}
                   </p>
                 </div>
@@ -140,21 +173,25 @@ export default async function ReportingPage({ searchParams }: PageProps) {
             <Card>
               <CardHeader><CardTitle>Jobs by Status</CardTitle></CardHeader>
               <CardContent>
-                <BarChart items={analytics.byStatus.map(s => ({
-                  label: s.status.replace(/_/g, ' '),
-                  count: s.count,
-                  color: STATUS_COLORS[s.status] ?? 'bg-slate-300',
-                }))} />
+                <BarChart
+                  items={analytics.byStatus.map((s) => ({
+                    label: s.status.replace(/_/g, ' '),
+                    count: s.count,
+                    color: STATUS_COLORS[s.status] ?? 'bg-slate-300',
+                  }))}
+                />
               </CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle>Jobs by Priority</CardTitle></CardHeader>
               <CardContent>
-                <BarChart items={analytics.byPriority.map(p => ({
-                  label: p.priority,
-                  count: p.count,
-                  color: PRIORITY_COLORS[p.priority] ?? 'bg-slate-300',
-                }))} />
+                <BarChart
+                  items={analytics.byPriority.map((p) => ({
+                    label: p.priority,
+                    count: p.count,
+                    color: PRIORITY_COLORS[p.priority] ?? 'bg-slate-300',
+                  }))}
+                />
               </CardContent>
             </Card>
           </div>
@@ -163,19 +200,19 @@ export default async function ReportingPage({ searchParams }: PageProps) {
             <Card>
               <CardHeader><CardTitle>By Building</CardTitle></CardHeader>
               <CardContent>
-                <DataTable rows={analytics.byBuilding.slice(0, 10).map(b => [b.building, String(b.count)])} />
+                <DataTable rows={analytics.byBuilding.slice(0, 10).map((b) => [b.building, String(b.count)])} />
               </CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle>By Category</CardTitle></CardHeader>
               <CardContent>
-                <DataTable rows={analytics.byCategory.slice(0, 10).map(c => [c.category, String(c.count)])} />
+                <DataTable rows={analytics.byCategory.slice(0, 10).map((c) => [c.category, String(c.count)])} />
               </CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle>Staff Workload (open)</CardTitle></CardHeader>
               <CardContent>
-                <DataTable rows={analytics.byStaff.slice(0, 10).map(s => [s.staff, `${s.open_jobs} open`])} />
+                <DataTable rows={analytics.byStaff.slice(0, 10).map((s) => [s.staff, `${s.open_jobs} open`])} />
               </CardContent>
             </Card>
           </div>
@@ -190,8 +227,9 @@ export default async function ReportingPage({ searchParams }: PageProps) {
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-blue-50 rounded-lg"><Building2 className="h-5 w-5 text-blue-600" /></div>
                 <div>
-                  <p className="text-xs text-slate-500">Occupancy Rate</p>
-                  <p className="text-2xl font-bold text-slate-900">{overallRate}%</p>
+                  <p className="text-xs text-ink-muted">Occupancy Rate</p>
+                  <p className="text-2xl font-bold text-ink">{overallRate}%</p>
+                  <p className="text-xs text-ink-faint">{totalOccupied}/{totalProperties} units</p>
                 </div>
               </div>
             </Card>
@@ -199,8 +237,8 @@ export default async function ReportingPage({ searchParams }: PageProps) {
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-green-50 rounded-lg"><Users className="h-5 w-5 text-green-600" /></div>
                 <div>
-                  <p className="text-xs text-slate-500">Active Tenants</p>
-                  <p className="text-2xl font-bold text-slate-900">{totalOccupied}</p>
+                  <p className="text-xs text-ink-muted">Active Tenants</p>
+                  <p className="text-2xl font-bold text-ink">{portfolioStats.activeTenants}</p>
                 </div>
               </div>
             </Card>
@@ -209,46 +247,31 @@ export default async function ReportingPage({ searchParams }: PageProps) {
           <Card>
             <CardHeader><CardTitle>Occupancy by Building</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {buildingOccupancy.map(b => {
-                const rate = Math.round((b.occupied / b.total) * 100)
-                return (
-                  <div key={b.name} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-700 font-medium truncate max-w-[180px]">{b.name}</span>
-                      <div className="flex items-center gap-2 text-slate-500 shrink-0">
-                        <span className="text-xs">{b.occupied}/{b.total}</span>
-                        <span className="font-semibold text-slate-900 w-10 text-right">{rate}%</span>
+              {buildings.length === 0 ? (
+                <p className="text-sm text-ink-muted">No buildings on record.</p>
+              ) : (
+                buildings.map((b) => {
+                  const total = b.total_properties || 1
+                  const rate = Math.round((b.occupied_count / total) * 100)
+                  return (
+                    <div key={b.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-ink font-medium truncate max-w-[180px]">{b.name}</span>
+                        <div className="flex items-center gap-2 text-ink-muted shrink-0">
+                          <span className="text-xs">{b.occupied_count}/{b.total_properties ?? '?'}</span>
+                          <span className="font-semibold text-ink w-10 text-right">{rate}%</span>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-line rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${rate >= 90 ? 'bg-green-500' : rate >= 70 ? 'bg-blue-500' : 'bg-amber-400'}`}
+                          style={{ width: `${rate}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${rate >= 90 ? 'bg-green-500' : rate >= 70 ? 'bg-blue-500' : 'bg-amber-400'}`}
-                        style={{ width: `${rate}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Electricity Accounts Summary</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                {([
-                  { label: 'Active', value: 5, cls: 'text-green-600 bg-green-50' },
-                  { label: 'Pending Consent', value: 2, cls: 'text-amber-600 bg-amber-50' },
-                  { label: 'Pending Setup', value: 1, cls: 'text-purple-600 bg-purple-50' },
-                  { label: 'Closed', value: 1, cls: 'text-slate-500 bg-slate-50' },
-                  { label: 'Not Required', value: 1, cls: 'text-slate-400 bg-slate-50' },
-                ] as const).map(item => (
-                  <div key={item.label} className={`p-4 rounded-xl border border-slate-200 text-center ${item.cls}`}>
-                    <p className="text-2xl font-bold">{item.value}</p>
-                    <p className="text-xs font-medium mt-1 opacity-80">{item.label}</p>
-                  </div>
-                ))}
-              </div>
+                  )
+                })
+              )}
             </CardContent>
           </Card>
         </div>
@@ -261,8 +284,8 @@ export default async function ReportingPage({ searchParams }: PageProps) {
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-purple-50 rounded-lg"><TrendingUp className="h-5 w-5 text-purple-600" /></div>
               <div>
-                <p className="text-xs text-slate-500">Apps This Month</p>
-                <p className="text-2xl font-bold text-slate-900">{totalApplications}</p>
+                <p className="text-xs text-ink-muted">Apps This Month</p>
+                <p className="text-2xl font-bold text-ink">{appStats.total}</p>
               </div>
             </div>
           </Card>
@@ -270,34 +293,20 @@ export default async function ReportingPage({ searchParams }: PageProps) {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Applications — June 2026</CardTitle>
-                <p className="text-sm text-slate-500">{totalApplications} total</p>
+                <CardTitle>Applications — {currentMonth}</CardTitle>
+                <p className="text-sm text-ink-muted">{appStats.total} total</p>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end gap-6 h-40 border-b border-slate-200">
-                {applicationsThisMonth.map(week => {
-                  const height = maxApps > 0 ? Math.round((week.count / maxApps) * 100) : 0
-                  return (
-                    <div key={week.week} className="flex flex-col items-center gap-2 flex-1">
-                      <span className="text-sm font-semibold text-slate-700">{week.count}</span>
-                      <div className="w-full bg-green-500 rounded-t-md" style={{ height: `${Math.max(height, 8)}%` }} />
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="flex gap-6 mt-2">
-                {applicationsThisMonth.map(week => (
-                  <div key={week.week} className="flex-1 text-center">
-                    <span className="text-xs text-slate-400">{week.week}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-slate-100">
-                {[{ label: 'Approved', v: 4 }, { label: 'Pending Review', v: 3 }, { label: 'Rejected', v: 1 }].map(i => (
-                  <div key={i.label} className="text-center">
-                    <p className="text-2xl font-bold text-slate-900">{i.v}</p>
-                    <p className="text-xs text-slate-500">{i.label}</p>
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                {[
+                  { label: 'Approved', v: appStats.approved, color: 'text-green-600' },
+                  { label: 'Pending Review', v: appStats.reviewing, color: 'text-amber-600' },
+                  { label: 'Rejected', v: appStats.rejected, color: 'text-red-600' },
+                ].map((i) => (
+                  <div key={i.label} className="text-center p-4 rounded-xl border border-line">
+                    <p className={`text-2xl font-bold ${i.color}`}>{i.v}</p>
+                    <p className="text-xs text-ink-muted mt-1">{i.label}</p>
                   </div>
                 ))}
               </div>
@@ -310,20 +319,20 @@ export default async function ReportingPage({ searchParams }: PageProps) {
 }
 
 function BarChart({ items }: { items: { label: string; count: number; color: string }[] }) {
-  const max = Math.max(...items.map(i => i.count), 1)
-  if (items.length === 0) return <p className="text-sm text-slate-400">No data yet.</p>
+  const max = Math.max(...items.map((i) => i.count), 1)
+  if (items.length === 0) return <p className="text-sm text-ink-muted">No data yet.</p>
   return (
     <div className="space-y-2.5">
-      {items.map(item => (
+      {items.map((item) => (
         <div key={item.label} className="flex items-center gap-3">
-          <span className="text-sm text-slate-600 w-32 shrink-0 capitalize truncate">{item.label}</span>
-          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <span className="text-sm text-ink-muted w-32 shrink-0 capitalize truncate">{item.label}</span>
+          <div className="flex-1 h-2 bg-line rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full ${item.color}`}
               style={{ width: `${Math.round((item.count / max) * 100)}%` }}
             />
           </div>
-          <span className="text-sm font-semibold text-slate-900 w-8 text-right">{item.count}</span>
+          <span className="text-sm font-semibold text-ink w-8 text-right">{item.count}</span>
         </div>
       ))}
     </div>
@@ -331,13 +340,13 @@ function BarChart({ items }: { items: { label: string; count: number; color: str
 }
 
 function DataTable({ rows }: { rows: [string, string][] }) {
-  if (rows.length === 0) return <p className="text-sm text-slate-400">No data yet.</p>
+  if (rows.length === 0) return <p className="text-sm text-ink-muted">No data yet.</p>
   return (
-    <div className="divide-y divide-slate-100">
+    <div className="divide-y divide-line">
       {rows.map(([label, value]) => (
         <div key={label} className="flex items-center justify-between py-2">
-          <span className="text-sm text-slate-700 truncate max-w-[60%]">{label}</span>
-          <span className="text-sm font-semibold text-slate-900">{value}</span>
+          <span className="text-sm text-ink truncate max-w-[60%]">{label}</span>
+          <span className="text-sm font-semibold text-ink">{value}</span>
         </div>
       ))}
     </div>
