@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, Calendar, AlertTriangle, Wrench, Database } from 'lucide-react'
+import { Plus, Calendar, AlertTriangle, Database } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmpty } from '@/components/ui/table'
@@ -35,6 +35,7 @@ export default async function MaintenancePage({
 }) {
   const sp = await searchParams
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+  const page = Math.max(1, parseInt(first(sp.page) ?? '1', 10) || 1)
   const params: Record<string, string | undefined> = {
     q: first(sp.q),
     building: first(sp.building),
@@ -44,21 +45,28 @@ export default async function MaintenancePage({
     staff: first(sp.staff),
     due: first(sp.due),
     tab: first(sp.tab) ?? 'open',
+    page: page > 1 ? String(page) : undefined,
   }
-  const filters: MaintenanceJobFilters = { ...params }
+  const filters: MaintenanceJobFilters = { ...params, page }
 
-  const [{ jobs, error }, stats, options] = await Promise.all([
+  const [{ jobs, total, error }, stats, options] = await Promise.all([
     getMaintenanceJobs(filters),
     getMaintenanceStats(),
     getMaintenanceFormOptions(),
   ])
 
+  const PAGE_SIZE = 50
+  const from = (page - 1) * PAGE_SIZE
+
+  // Strip page when building filter/tab links so navigation resets to page 1
+  const noPage = { ...params, page: undefined }
+
   const kpis = [
-    { label: 'Open jobs', value: stats.open, tone: 'text-ink', href: buildHref(params, { tab: 'open', due: undefined, priority: undefined }) },
-    { label: 'Urgent', value: stats.urgent, tone: stats.urgent > 0 ? 'text-neg' : 'text-ink', href: buildHref(params, { tab: 'open', priority: 'urgent', due: undefined }) },
-    { label: 'Overdue', value: stats.overdue, tone: stats.overdue > 0 ? 'text-warn' : 'text-ink', href: buildHref(params, { tab: 'open', due: 'overdue', priority: undefined }) },
-    { label: 'Due this week', value: stats.dueThisWeek, tone: 'text-ink', href: buildHref(params, { tab: 'open', due: 'week', priority: undefined }) },
-    { label: 'Unassigned', value: stats.unassigned, tone: stats.unassigned > 0 ? 'text-info' : 'text-ink', href: buildHref(params, { tab: 'unassigned', due: undefined, priority: undefined }) },
+    { label: 'Open jobs', value: stats.open, tone: 'text-ink', href: buildHref(noPage, { tab: 'open', due: undefined, priority: undefined }) },
+    { label: 'Urgent', value: stats.urgent, tone: stats.urgent > 0 ? 'text-neg' : 'text-ink', href: buildHref(noPage, { tab: 'open', priority: 'urgent', due: undefined }) },
+    { label: 'Overdue', value: stats.overdue, tone: stats.overdue > 0 ? 'text-warn' : 'text-ink', href: buildHref(noPage, { tab: 'open', due: 'overdue', priority: undefined }) },
+    { label: 'Due this week', value: stats.dueThisWeek, tone: 'text-ink', href: buildHref(noPage, { tab: 'open', due: 'week', priority: undefined }) },
+    { label: 'Unassigned', value: stats.unassigned, tone: stats.unassigned > 0 ? 'text-info' : 'text-ink', href: buildHref(noPage, { tab: 'unassigned', due: undefined, priority: undefined }) },
   ]
 
   return (
@@ -113,7 +121,7 @@ export default async function MaintenancePage({
             return (
               <Link
                 key={t.id}
-                href={buildHref(params, { tab: t.id })}
+                href={buildHref(noPage, { tab: t.id })}
                 className={cn(
                   'px-4 py-2.5 text-[13px] font-medium border-b-2 transition-colors',
                   active ? 'border-primary text-primary' : 'border-transparent text-ink-muted hover:text-ink hover:border-line-strong'
@@ -215,8 +223,29 @@ export default async function MaintenancePage({
         </CardContent>
       </Card>
 
-      {jobs.length >= 200 && (
-        <p className="flex items-center gap-1.5 text-[12px] text-ink-faint"><Wrench className="h-3 w-3" />Showing the first 200 jobs. Narrow the filters to see more.</p>
+      {/* Pagination */}
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between text-[13px] text-ink-muted">
+          <span>Showing {from + 1}–{Math.min(total, from + PAGE_SIZE)} of {total} jobs</span>
+          <div className="flex items-center gap-1.5">
+            {page > 1 && (
+              <Link
+                href={buildHref(noPage, { page: String(page - 1) })}
+                className="px-3 py-1.5 rounded-md border border-line hover:bg-canvas text-[13px]"
+              >
+                ← Previous
+              </Link>
+            )}
+            {from + PAGE_SIZE < total && (
+              <Link
+                href={buildHref(noPage, { tab: params.tab, page: String(page + 1) })}
+                className="px-3 py-1.5 rounded-md border border-line hover:bg-canvas text-[13px]"
+              >
+                Next →
+              </Link>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

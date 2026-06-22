@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { createTenant } from '@/lib/tenants/actions'
 import type { TenantListItem } from '@/lib/tenants/queries'
 
+const PAGE_SIZE = 50
+
 interface Props {
   tenants: TenantListItem[]
   buildings: { id: string; name: string }[]
@@ -20,7 +22,10 @@ interface Props {
     building?: string
     university?: string
     status?: string
+    page?: number
   }
+  total: number
+  page: number
 }
 
 function isDbNotConfigured(err: string) {
@@ -32,7 +37,7 @@ function isDbNotConfigured(err: string) {
   )
 }
 
-export default function TenantsClient({ tenants, buildings, error, filters }: Props) {
+export default function TenantsClient({ tenants, buildings, error, filters, total, page }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const [showModal, setShowModal] = useState(false)
@@ -40,12 +45,32 @@ export default function TenantsClient({ tenants, buildings, error, filters }: Pr
   const [isPending, startTransition] = useTransition()
   const formRef = useRef<HTMLFormElement>(null)
 
-  function setParam(key: string, value: string) {
-    const sp = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
-    if (value) sp.set(key, value)
-    else sp.delete(key)
-    router.push(`${pathname}?${sp.toString()}`)
+  function buildSearch(overrides: Record<string, string | undefined>) {
+    const sp = new URLSearchParams()
+    if (filters.q) sp.set('q', filters.q)
+    if (filters.building) sp.set('building', filters.building)
+    if (filters.university) sp.set('university', filters.university)
+    if (filters.status) sp.set('status', filters.status)
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v) sp.set(k, v)
+      else sp.delete(k)
+    }
+    return sp.toString()
   }
+
+  function setParam(key: string, value: string) {
+    // Reset to page 1 on filter changes
+    const qs = buildSearch({ [key]: value || undefined, page: undefined })
+    router.push(`${pathname}${qs ? `?${qs}` : ''}`)
+  }
+
+  function goToPage(n: number) {
+    const qs = buildSearch({ page: n > 1 ? String(n) : undefined })
+    router.push(`${pathname}${qs ? `?${qs}` : ''}`)
+  }
+
+  const pageFrom = (page - 1) * PAGE_SIZE + 1
+  const pageTo = Math.min(total, page * PAGE_SIZE)
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -63,8 +88,6 @@ export default function TenantsClient({ tenants, buildings, error, filters }: Pr
     })
   }
 
-  const activeCount = tenants.filter((t) => t.is_active).length
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -72,7 +95,7 @@ export default function TenantsClient({ tenants, buildings, error, filters }: Pr
         <div>
           <h1 className="text-2xl font-bold text-ink">Tenants</h1>
           <p className="text-ink-muted text-sm mt-0.5">
-            {activeCount} active tenant{activeCount !== 1 ? 's' : ''}
+            {total} tenant{total !== 1 ? 's' : ''}
           </p>
         </div>
         <Button onClick={() => { setShowModal(true); setFormError(null) }}>
@@ -243,6 +266,30 @@ export default function TenantsClient({ tenants, buildings, error, filters }: Pr
               </TableBody>
             </Table>
           )}
+        {/* Pagination */}
+        {total > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-line">
+            <span className="text-xs text-ink-muted">
+              Showing {pageFrom}–{pageTo} of {total}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => goToPage(page - 1)}
+                disabled={page <= 1}
+                className="px-3 py-1.5 rounded-md border border-line text-xs text-ink-muted hover:bg-canvas disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ← Previous
+              </button>
+              <button
+                onClick={() => goToPage(page + 1)}
+                disabled={pageTo >= total}
+                className="px-3 py-1.5 rounded-md border border-line text-xs text-ink-muted hover:bg-canvas disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
         </CardContent>
       </Card>
 

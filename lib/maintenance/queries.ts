@@ -16,7 +16,10 @@ import type {
 import { OPEN_STATUSES } from './constants'
 
 const JOB_LIST_SELECT = `
-  *,
+  id, job_number, title, issue_type, status, priority, source,
+  assigned_staff_id, assigned_manager_id,
+  property_id, building_id, tenant_id, category_id,
+  due_date, scheduled_date, created_at,
   building:buildings(id, name),
   property:properties(id, unit_number, owner:owners!owner_id(id, first_name, last_name, email, company_name)),
   tenant:tenants(id, first_name, last_name, email, phone),
@@ -35,15 +38,23 @@ const JOB_DETAIL_SELECT = `
 
 export interface JobListResult {
   jobs: MaintenanceJob[]
+  total: number
   error: string | null
 }
 
+const JOB_PAGE_SIZE = 50
+
 export async function getMaintenanceJobs(filters: MaintenanceJobFilters = {}): Promise<JobListResult> {
+  const page = Math.max(1, filters.page ?? 1)
+  const pageSize = filters.pageSize ?? JOB_PAGE_SIZE
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
   try {
     const supabase = await createClient()
     let query = supabase
       .from('maintenance_jobs')
-      .select(JOB_LIST_SELECT)
+      .select(JOB_LIST_SELECT, { count: 'exact' })
       .eq('is_active', true)
 
     const view = filters.tab ?? 'open'
@@ -69,14 +80,14 @@ export async function getMaintenanceJobs(filters: MaintenanceJobFilters = {}): P
 
     if (filters.q) {
       const term = filters.q.replace(/[%,]/g, ' ').trim()
-      if (term) query = query.or(`title.ilike.%${term}%,job_number.ilike.%${term}%,description.ilike.%${term}%`)
+      if (term) query = query.or(`title.ilike.%${term}%,job_number.ilike.%${term}%`)
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false }).limit(200)
-    if (error) return { jobs: [], error: error.message }
-    return { jobs: (data as unknown as MaintenanceJob[]) ?? [], error: null }
+    const { data, error, count } = await query.order('created_at', { ascending: false }).range(from, to)
+    if (error) return { jobs: [], total: 0, error: error.message }
+    return { jobs: (data as unknown as MaintenanceJob[]) ?? [], total: count ?? 0, error: null }
   } catch (err) {
-    return { jobs: [], error: err instanceof Error ? err.message : 'Failed to load maintenance jobs' }
+    return { jobs: [], total: 0, error: err instanceof Error ? err.message : 'Failed to load maintenance jobs' }
   }
 }
 
@@ -187,7 +198,7 @@ export async function getMaintenanceFormOptions(): Promise<MaintenanceFormOption
   }
 }
 
-// ── Phase 2 ────────────────────────────────────────────────────────────────
+// ── Phase 2 ───────────────────────────────────────────────────────────────────────────────
 
 export interface ScheduleStaff {
   id: string
@@ -344,7 +355,7 @@ export async function getPropertyMaintenanceHistory(propertyId: string): Promise
   }
 }
 
-// ── Phase 3 ────────────────────────────────────────────────────────────────
+// ── Phase 3 ───────────────────────────────────────────────────────────────────────────────
 
 export interface ContractorRow {
   id: string
@@ -442,7 +453,7 @@ export interface MaintenanceAnalytics {
   error: string | null
 }
 
-// ── Phase 3 additions ───────────────────────────────────────────────────────
+// ── Phase 3 additions ────────────────────────────────────────────────────────────────────
 
 export async function getServices(): Promise<{ services: MaintenanceService[]; error: string | null }> {
   try {

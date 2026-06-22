@@ -9,6 +9,8 @@ import { PropertyStatusBadge } from '@/components/ui/badge'
 import type { PropertyRow } from '@/lib/properties/queries'
 import type { BuildingRow } from '@/lib/buildings/queries'
 
+const PAGE_SIZE = 50
+
 interface Props {
   properties: PropertyRow[]
   buildings: BuildingRow[]
@@ -18,7 +20,10 @@ interface Props {
     buildingId?: string
     status?: string
     type?: string
+    page?: number
   }
+  total: number
+  page: number
 }
 
 const STATUSES = [
@@ -39,21 +44,36 @@ const TYPES = [
   { value: '3 Bedroom', label: '3 Bedroom' },
 ]
 
-export default function PropertiesClient({ properties, buildings, error, activeFilters }: Props) {
+export default function PropertiesClient({ properties, buildings, error, activeFilters, total, page }: Props) {
   const router = useRouter()
   const pathname = usePathname()
 
-  function updateFilter(key: string, value: string) {
+  function buildSearch(overrides: Record<string, string | undefined>) {
     const sp = new URLSearchParams()
     if (activeFilters.q) sp.set('q', activeFilters.q)
     if (activeFilters.buildingId) sp.set('building', activeFilters.buildingId)
     if (activeFilters.status) sp.set('status', activeFilters.status)
     if (activeFilters.type) sp.set('type', activeFilters.type)
-    if (value) sp.set(key, value)
-    else sp.delete(key)
-    const qs = sp.toString()
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v) sp.set(k, v)
+      else sp.delete(k)
+    }
+    return sp.toString()
+  }
+
+  function updateFilter(key: string, value: string) {
+    // Reset to page 1 when filters change
+    const qs = buildSearch({ [key]: value || undefined, page: undefined })
     router.push(qs ? `${pathname}?${qs}` : pathname)
   }
+
+  function goToPage(n: number) {
+    const qs = buildSearch({ page: n > 1 ? String(n) : undefined })
+    router.push(qs ? `${pathname}?${qs}` : pathname)
+  }
+
+  const pageFrom = (page - 1) * PAGE_SIZE + 1
+  const pageTo = Math.min(total, page * PAGE_SIZE)
 
   const occupied = properties.filter((p) => p.status === 'occupied').length
   const available = properties.filter((p) => p.status === 'available').length
@@ -73,7 +93,7 @@ export default function PropertiesClient({ properties, buildings, error, activeF
         <div>
           <h1 className="text-xl font-semibold text-ink">Portfolio</h1>
           <p className="text-ink-muted text-sm mt-0.5">
-            {properties.length} properties · {occupied} occupied · {available} available
+            {total} properties · {occupied} occupied · {available} available
           </p>
         </div>
         <Link
@@ -102,7 +122,7 @@ export default function PropertiesClient({ properties, buildings, error, activeF
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Total Properties', value: properties.length },
+          { label: 'Total Properties', value: total },
           { label: 'Occupied', value: occupied },
           { label: 'Available', value: available },
           { label: 'With Owner', value: withOwner },
@@ -298,6 +318,31 @@ export default function PropertiesClient({ properties, buildings, error, activeF
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {total > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-line">
+            <span className="text-xs text-ink-muted">
+              Showing {pageFrom}–{pageTo} of {total}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => goToPage(page - 1)}
+                disabled={page <= 1}
+                className="px-3 py-1.5 rounded-md border border-line text-xs text-ink-muted hover:bg-canvas disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ← Previous
+              </button>
+              <button
+                onClick={() => goToPage(page + 1)}
+                disabled={pageTo >= total}
+                className="px-3 py-1.5 rounded-md border border-line text-xs text-ink-muted hover:bg-canvas disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
+            </div>
           </div>
         )}
       </div>
