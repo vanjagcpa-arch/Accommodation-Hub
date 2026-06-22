@@ -43,24 +43,35 @@ export interface PropertyFilters {
   buildingId?: string
   status?: string
   type?: string
+  page?: number
+  pageSize?: number
 }
+
+const PAGE_SIZE = 50
 
 export async function getProperties(
   filters: PropertyFilters = {}
-): Promise<{ properties: PropertyRow[]; error: string | null }> {
+): Promise<{ properties: PropertyRow[]; total: number; error: string | null }> {
   try {
     const supabase = await createClient()
+    const pageSize = filters.pageSize ?? PAGE_SIZE
+    const page = Math.max(1, filters.page ?? 1)
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
 
     let query = supabase
       .from('properties')
-      .select(`
+      .select(
+        `
         id, unit_number, property_type, bedrooms, bathrooms,
         rent_amount, bond_amount, status, available_date, agent_visible,
         building_id,
         building:buildings(id, name, suburb),
         assigned_manager:profiles!assigned_manager_id(full_name),
         owner:owners!owner_id(id, first_name, last_name, email, phone, company_name)
-      `)
+      `,
+        { count: 'exact' }
+      )
       .eq('is_active', true)
       .order('unit_number')
 
@@ -72,11 +83,11 @@ export async function getProperties(
       if (term) query = query.ilike('unit_number', `%${term}%`)
     }
 
-    const { data: properties, error } = await query
-    if (error) return { properties: [], error: error.message }
-    if (!properties?.length) return { properties: [], error: null }
+    const { data: properties, error, count } = await query.range(from, to)
+    if (error) return { properties: [], total: 0, error: error.message }
+    if (!properties?.length) return { properties: [], total: count ?? 0, error: null }
 
-    // Fetch current occupancies with tenant info separately (avoids inner join dropping unmatched rows)
+    // Fetch current occupancies for this page's properties only
     const { data: occupancies } = await supabase
       .from('occupancies')
       .select(`
@@ -96,10 +107,11 @@ export async function getProperties(
       current_occupancy: (occMap[p.id] as PropertyRow['current_occupancy']) ?? null,
     }))
 
-    return { properties: items, error: null }
+    return { properties: items, total: count ?? 0, error: null }
   } catch (err) {
     return {
       properties: [],
+      total: 0,
       error: err instanceof Error ? err.message : 'Failed to load properties',
     }
   }

@@ -12,14 +12,17 @@ export default async function PropertiesPage({
   const sp = await searchParams
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
+  const page = Math.max(1, parseInt(first(sp.page) ?? '1', 10) || 1)
+
   const filters = {
     q: first(sp.q),
     buildingId: first(sp.building),
     status: first(sp.status),
     type: first(sp.type),
+    page,
   }
 
-  const [{ properties, error }, { buildings }] = await Promise.all([
+  const [{ properties, total, error }, { buildings }] = await Promise.all([
     getProperties(filters),
     getBuildings(),
   ])
@@ -30,6 +33,8 @@ export default async function PropertiesPage({
       buildings={buildings}
       error={error}
       activeFilters={filters}
+      total={total}
+      page={page}
     />
   )
 }

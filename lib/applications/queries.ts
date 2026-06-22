@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import type { Application, ApplicationStatus } from '@/types'
 
 const APP_LIST_SELECT = `
-  *,
+  id, applicant_first_name, applicant_last_name, applicant_email, applicant_phone,
+  university, preferred_move_in, status, created_at, building_id, property_id, agent_id,
   building:buildings(id, name),
   property:properties(id, unit_number),
   agent:agents(id, first_name, last_name, agency_name)
@@ -22,17 +23,27 @@ export interface ApplicationFilters {
   building?: string
   agent?: string
   tab?: string
+  page?: number
+  pageSize?: number
 }
 
 export interface ApplicationListResult {
   applications: Application[]
+  total: number
   error: string | null
 }
 
+const APP_PAGE_SIZE = 50
+
 export async function getApplications(filters: ApplicationFilters = {}): Promise<ApplicationListResult> {
+  const page = Math.max(1, filters.page ?? 1)
+  const pageSize = filters.pageSize ?? APP_PAGE_SIZE
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
   try {
     const supabase = await createClient()
-    let query = supabase.from('applications').select(APP_LIST_SELECT)
+    let query = supabase.from('applications').select(APP_LIST_SELECT, { count: 'exact' })
 
     const tab = filters.tab ?? 'active'
     if (tab === 'active') {
@@ -64,14 +75,14 @@ export async function getApplications(filters: ApplicationFilters = {}): Promise
       }
     }
 
-    const { data, error } = await query
+    const { data, error, count } = await query
       .order('created_at', { ascending: false })
-      .limit(300)
+      .range(from, to)
 
-    if (error) return { applications: [], error: error.message }
-    return { applications: (data as unknown as Application[]) ?? [], error: null }
+    if (error) return { applications: [], total: 0, error: error.message }
+    return { applications: (data as unknown as Application[]) ?? [], total: count ?? 0, error: null }
   } catch (err) {
-    return { applications: [], error: err instanceof Error ? err.message : 'Failed to load applications' }
+    return { applications: [], total: 0, error: err instanceof Error ? err.message : 'Failed to load applications' }
   }
 }
 

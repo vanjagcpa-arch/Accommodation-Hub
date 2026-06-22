@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import TenantsClient from './_components/tenants-client'
 
 type PageProps = {
-  searchParams: Promise<{ q?: string; building?: string; university?: string; status?: string }>
+  searchParams: Promise<{ q?: string; building?: string; university?: string; status?: string; page?: string }>
 }
 
 async function getBuildings() {
@@ -24,14 +24,16 @@ async function getBuildings() {
 
 export default async function TenantsPage({ searchParams }: PageProps) {
   const params = await searchParams
+  const page = Math.max(1, parseInt(params.page ?? '1', 10) || 1)
   const filters = {
     q: params.q,
     building: params.building,
     university: params.university,
     status: params.status as 'active' | 'inactive' | 'all' | undefined,
+    page,
   }
 
-  const [{ tenants, error }, buildings] = await Promise.all([
+  const [{ tenants, total, error }, buildings] = await Promise.all([
     getTenants(filters),
     getBuildings(),
   ])
@@ -42,6 +44,8 @@ export default async function TenantsPage({ searchParams }: PageProps) {
       buildings={buildings}
       error={error}
       filters={filters}
+      total={total}
+      page={page}
     />
   )
 }

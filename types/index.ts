@@ -733,6 +733,8 @@ export interface MaintenanceJobFilters {
   staff?: string
   due?: 'overdue' | 'today' | 'week' | string
   tab?: string
+  page?: number
+  pageSize?: number
 }
 
 // Options used to populate the New Request / filter dropdowns
