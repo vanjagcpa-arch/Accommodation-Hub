@@ -21,6 +21,8 @@ import {
   Receipt,
   Layers,
   UserCheck,
+  MessageSquareText,
+  Bot,
   type LucideIcon,
 } from 'lucide-react'
 import type { Module } from '@/lib/permissions'
@@ -79,6 +81,7 @@ export const navGroups: NavGroup[] = [
     module: 'maintenance',
     items: [
       { name: 'Work Orders', href: '/maintenance', icon: Wrench, exact: true },
+      { name: 'Tenant Triage', href: '/maintenance/triage', icon: MessageSquareText },
       { name: 'Properties', href: '/maintenance/properties', icon: Building2 },
       { name: 'My Jobs', href: '/maintenance/my-jobs', icon: ListChecks },
       { name: 'Contractors', href: '/maintenance/contractors', icon: Users },
@@ -106,6 +109,7 @@ export const navGroups: NavGroup[] = [
     module: 'system',
     items: [
       { name: 'Integrations', href: '/integrations', icon: Link2 },
+      { name: 'Triage Agent', href: '/settings/triage', icon: Bot },
       { name: 'Settings', href: '/settings', icon: Settings },
     ],
   },

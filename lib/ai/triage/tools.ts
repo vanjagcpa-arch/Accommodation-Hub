@@ -84,6 +84,8 @@ export interface FinalizeInput {
   threadId: string
   occupancyId: string | null
   tenantId: string | null
+  propertyId?: string | null
+  buildingId?: string | null
   categoryId: string | null
   payload: JobPayload
   source: string
@@ -94,7 +96,7 @@ export interface FinalizeResult {
 }
 
 export async function finalizeTriage(input: FinalizeInput): Promise<FinalizeResult> {
-  const { supabase, companyId, threadId, occupancyId, tenantId, categoryId, payload, source } = input
+  const { supabase, companyId, threadId, occupancyId, tenantId, propertyId = null, buildingId = null, categoryId, payload, source } = input
 
   const dueAt = payload.sla_hours
     ? new Date(Date.now() + payload.sla_hours * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -104,6 +106,8 @@ export async function finalizeTriage(input: FinalizeInput): Promise<FinalizeResu
     company_id:         companyId,
     occupancy_id:       occupancyId,
     tenant_id:          tenantId,
+    property_id:        propertyId,
+    building_id:        buildingId,
     category_id:        categoryId,
     title:              payload.summary,
     priority:           payload.priority,

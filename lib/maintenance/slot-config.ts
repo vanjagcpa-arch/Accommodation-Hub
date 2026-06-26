@@ -12,6 +12,9 @@ export interface SlotSpec {
   // Return false to skip this slot (evaluated against accumulated slots so far).
   // Expressed as a string to keep the config serialisable; eval'd in agent.ts.
   when?: (slots: Record<string, unknown>) => boolean
+  // DB-backed equivalent of `when`: marks the slot as advisory-conditional in
+  // the prompt without a JS predicate (the model decides relevance).
+  conditional?: boolean
 }
 
 export interface CategorySlotConfig {
