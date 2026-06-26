@@ -1,13 +1,15 @@
-import { getSlotConfig, SLOT_CONFIG } from '@/lib/maintenance/slot-config'
+import type { CategorySlotConfig } from '@/lib/maintenance/slot-config'
+import { findCategoryConfig } from '@/lib/maintenance/triage-config'
 
 interface PromptParams {
   slots: Record<string, unknown>
   categorySlug: string | null
   questionBudget: number
+  configs: CategorySlotConfig[]
 }
 
-export function buildTriageSystemPrompt({ slots, categorySlug, questionBudget }: PromptParams): string {
-  const slotConfigSection = buildSlotConfigSection(categorySlug)
+export function buildTriageSystemPrompt({ slots, categorySlug, questionBudget, configs }: PromptParams): string {
+  const slotConfigSection = buildSlotConfigSection(categorySlug, configs)
   const currentSlotsSection = buildCurrentSlotsSection(slots)
   const budgetNote = questionBudget <= 0
     ? 'The question budget is EXHAUSTED. You MUST set action to "finalize" using the slots collected so far.'
@@ -21,7 +23,7 @@ You MUST respond with a single JSON object conforming exactly to the TriageTurn 
 Required fields: extracted, category, confidence, action.
 
 ## Categories
-${SLOT_CONFIG.map((c) => `- ${c.categorySlug}: ${c.displayName}`).join('\n')}
+${configs.map((c) => `- ${c.categorySlug}: ${c.displayName}`).join('\n')}
 
 ## Rules
 1. Classify the issue category and set confidence (0–1).
@@ -42,18 +44,18 @@ ${slotConfigSection}
 ${currentSlotsSection}`
 }
 
-function buildSlotConfigSection(categorySlug: string | null): string {
+function buildSlotConfigSection(categorySlug: string | null, configs: CategorySlotConfig[]): string {
   if (!categorySlug) {
     return `## Slot checklist
 No category detected yet. First classify the issue, then ask slot questions.`
   }
-  const config = getSlotConfig(categorySlug)
+  const config = findCategoryConfig(configs, categorySlug)
   if (!config) {
     return `## Slot checklist
 Unknown category "${categorySlug}". Treat as "other".`
   }
   const slotLines = config.slots
-    .map((s) => `  - ${s.key} (${s.input}${s.options ? ': ' + s.options.join(' / ') : ''})${s.when ? ' [conditional]' : ''}`)
+    .map((s) => `  - ${s.key} (${s.input}${s.options ? ': ' + s.options.join(' / ') : ''})${s.when || s.conditional ? ' [conditional]' : ''}`)
     .join('\n')
   return `## Slot checklist for category: ${config.categorySlug}
 ${slotLines}

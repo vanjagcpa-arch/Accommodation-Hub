@@ -3,7 +3,9 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildTriageSystemPrompt } from './system-prompt'
 import { TriageTurnSchema, TRIAGE_TURN_JSON_SCHEMA } from './contract'
 import type { TriageTurn, IntakeThread } from './contract'
-import { EMERGENCY_KEYWORDS, SAFETY_ESCALATION_SCRIPT, getSlotConfig } from '@/lib/maintenance/slot-config'
+import { EMERGENCY_KEYWORDS, SAFETY_ESCALATION_SCRIPT } from '@/lib/maintenance/slot-config'
+import type { CategorySlotConfig } from '@/lib/maintenance/slot-config'
+import { loadTriageConfig, findCategoryConfig } from '@/lib/maintenance/triage-config'
 import { finalizeTriage, lookupSelfHelp } from './tools'
 
 const QUESTION_CAP = 5
@@ -19,6 +21,8 @@ export interface AgentInput {
   companyId: string
   occupancyId?: string | null
   tenantId?: string | null
+  propertyId?: string | null
+  buildingId?: string | null
   source?: string
 }
 
@@ -32,7 +36,7 @@ export async function runTriageAgent(
   supabase: SupabaseClient,
   input: AgentInput
 ): Promise<AgentOutput> {
-  const { companyId, occupancyId = null, tenantId = null, source = 'web' } = input
+  const { companyId, occupancyId = null, tenantId = null, propertyId = null, buildingId = null, source = 'web' } = input
 
   // ── STEP 1: Emergency scan — deterministic, runs before any model call ──────
   const rawText = typeof input.message === 'string' ? input.message : ''
@@ -62,6 +66,10 @@ export async function runTriageAgent(
     status: 'open',
   })
 
+  // Load the (editable) triage checklist for this company — DB-backed with a
+  // fallback to the code defaults. Single source the prompt + finalize read.
+  const configs = await loadTriageConfig(supabase, companyId)
+
   // ── STEP 3: Append tenant message ────────────────────────────────────────────
   if (typeof input.message === 'string') {
     await appendMessage(supabase, thread.id, 'tenant', { text: input.message })
@@ -90,6 +98,7 @@ export async function runTriageAgent(
     slots: thread.slots,
     categorySlug: thread.category_slug,
     questionBudget,
+    configs,
   })
 
   // ── STEP 6: Call model with structured JSON output ────────────────────────────
@@ -129,7 +138,7 @@ export async function runTriageAgent(
 
   // ── STEP 7: Enforce budget cap ────────────────────────────────────────────────
   if (questionBudget <= 0 && rawTurn.action === 'ask') {
-    rawTurn = { ...rawTurn, action: 'finalize', job: buildFallbackJob(thread, rawTurn) }
+    rawTurn = { ...rawTurn, action: 'finalize', job: buildFallbackJob(thread, rawTurn, configs) }
   }
 
   // ── STEP 8: Merge extracted slots + persist ───────────────────────────────────
@@ -173,13 +182,15 @@ export async function runTriageAgent(
   }
 
   if (rawTurn.action === 'finalize' && rawTurn.job) {
-    const slotConfig = getSlotConfig(rawTurn.category ?? 'other')
+    const slotConfig = findCategoryConfig(configs, rawTurn.category ?? 'other')
     const result = await finalizeTriage({
       supabase,
       companyId,
       threadId: thread.id,
       occupancyId,
       tenantId,
+      propertyId,
+      buildingId,
       categoryId,
       payload: {
         ...rawTurn.job,
@@ -312,8 +323,8 @@ function extractSymptoms(rawText: string, slots: Record<string, unknown>): strin
   return [...new Set(parts.map((p) => p.toLowerCase()))]
 }
 
-function buildFallbackJob(thread: ThreadState, turn: TriageTurn) {
-  const config = getSlotConfig(turn.category ?? 'other')
+function buildFallbackJob(thread: ThreadState, turn: TriageTurn, configs: CategorySlotConfig[]) {
+  const config = findCategoryConfig(configs, turn.category ?? 'other')
   return {
     category: turn.category ?? 'other',
     priority: config?.defaultPriority ?? 'medium',

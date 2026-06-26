@@ -39,10 +39,16 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login')
-  ) {
+  // Public, tenant-facing paths must be reachable without a session: the
+  // /r/<token> triage page and its /api/public/* endpoint stand in their own
+  // token-based auth, so don't bounce them to /login.
+  const { pathname } = request.nextUrl
+  const isPublicPath =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/r/') ||
+    pathname.startsWith('/api/public/')
+
+  if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

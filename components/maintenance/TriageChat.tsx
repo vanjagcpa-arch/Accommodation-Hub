@@ -25,13 +25,17 @@ interface Props {
   occupancyId?: string
   tenantId?: string
   source?: string
+  // Defaults to the authenticated staff endpoint. The public tenant page passes
+  // the token-based endpoint plus its property `token`.
+  endpoint?: string
+  token?: string
   onJobCreated?: (jobId: string) => void
   onHandoff?: () => void
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function TriageChat({ occupancyId, tenantId, source = 'web', onJobCreated, onHandoff }: Props) {
+export default function TriageChat({ occupancyId, tenantId, source = 'web', endpoint = '/api/maintenance/triage', token, onJobCreated, onHandoff }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'agent', text: 'Hi! What maintenance issue can we help you with today?' },
   ])
@@ -49,10 +53,10 @@ export default function TriageChat({ occupancyId, tenantId, source = 'web', onJo
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/maintenance/triage', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId, message, occupancyId, tenantId, source }),
+        body: JSON.stringify({ threadId, message, occupancyId, tenantId, source, token }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -68,7 +72,7 @@ export default function TriageChat({ occupancyId, tenantId, source = 'web', onJo
     } finally {
       setLoading(false)
     }
-  }, [threadId, occupancyId, tenantId, source])
+  }, [threadId, occupancyId, tenantId, source, endpoint, token])
 
   function handleTurn(turn: TriageTurn, jobId?: string) {
     // Update live job panel
