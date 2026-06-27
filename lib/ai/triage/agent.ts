@@ -11,9 +11,11 @@ import { finalizeTriage, lookupSelfHelp } from './tools'
 const QUESTION_CAP = 5
 const CONFIDENCE_FLOOR = 0.6
 
-// Model IDs — kept in config, not inline.
-const MODEL_WORKHORSE = process.env.TRIAGE_MODEL_WORKHORSE ?? 'gpt-4o-mini'
-const MODEL_ESCALATION = process.env.TRIAGE_MODEL_ESCALATION ?? 'gpt-4o'
+// Model IDs — kept in config, not inline. Use the default when the env var is
+// unset OR set to an empty/whitespace value (a blank Vercel var would otherwise
+// send model="" and OpenAI 400s with "you must provide a model parameter").
+const MODEL_WORKHORSE = (process.env.TRIAGE_MODEL_WORKHORSE ?? '').trim() || 'gpt-4o-mini'
+const MODEL_ESCALATION = (process.env.TRIAGE_MODEL_ESCALATION ?? '').trim() || 'gpt-4o'
 
 export interface AgentInput {
   threadId?: string
