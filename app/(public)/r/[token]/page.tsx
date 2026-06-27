@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 interface PropertyLookup {
   id: string
-  name: string | null
+  unit_number: string | null
   is_active: boolean | null
   buildings: { name: string | null } | null
   companies: { name: string | null; email: string | null; phone: string | null } | null
@@ -25,11 +25,12 @@ export default async function PublicTriagePage({
   let property: PropertyLookup | null = null
   try {
     const admin = createAdminClient()
-    const { data } = await admin
+    const { data, error } = await admin
       .from('properties')
-      .select('id, name, is_active, buildings(name), companies(name, email, phone)')
+      .select('id, unit_number, is_active, buildings(name), companies(name, email, phone)')
       .eq('triage_token', token)
       .maybeSingle()
+    if (error) console.error('[r/token] property lookup failed:', error.message)
     property = (data as unknown as PropertyLookup) ?? null
   } catch {
     // Missing service-role env etc. — treat as not found rather than leak details.
@@ -39,7 +40,7 @@ export default async function PublicTriagePage({
   if (!property || property.is_active === false) notFound()
 
   const company = property.companies
-  const locationLabel = [property.buildings?.name, property.name].filter(Boolean).join(' · ')
+  const locationLabel = [property.buildings?.name, property.unit_number].filter(Boolean).join(' · ')
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
