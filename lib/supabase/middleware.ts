@@ -46,6 +46,7 @@ export async function updateSession(request: NextRequest) {
   const isPublicPath =
     pathname.startsWith('/login') ||
     pathname.startsWith('/r/') ||
+    pathname.startsWith('/approve/') ||
     pathname.startsWith('/api/public/')
 
   if (!user && !isPublicPath) {

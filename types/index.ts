@@ -346,6 +346,12 @@ export interface MaintenanceJob {
   updated_at: string
   created_by: string | null
   updated_by: string | null
+  // Owner approval
+  owner_approval_token: string | null
+  owner_approval_status: 'pending' | 'approved' | 'declined' | null
+  owner_approval_sent_at: string | null
+  owner_approval_decided_at: string | null
+  owner_approval_note: string | null
   // Joined
   building?: Building | null
   property?: Property | null

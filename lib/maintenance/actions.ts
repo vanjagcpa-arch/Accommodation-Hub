@@ -1,8 +1,11 @@
 'use server'
 
+import { randomBytes } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { sendEmail } from '@/lib/email/send'
 import type { MaintenanceStatus } from '@/types'
 
 export interface ActionState {
@@ -709,4 +712,137 @@ export async function generateJobFromRule(ruleId: string): Promise<ActionState> 
   revalidatePath('/maintenance/recurring')
   revalidatePath('/maintenance')
   redirect(`/maintenance/${job.id}`)
+}
+
+// ── Owner approval ────────────────────────────────────────────────────────────
+
+async function appBaseUrl(): Promise<string> {
+  const envUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').trim().replace(/\/$/, '')
+  if (envUrl) return envUrl
+  const h = await headers()
+  const host = h.get('host')
+  const proto = h.get('x-forwarded-proto') ?? 'https'
+  return host ? `${proto}://${host}` : ''
+}
+
+interface OwnerApprovalResult extends ActionState {
+  link?: string
+  emailed?: boolean
+  ownerEmail?: string
+}
+
+// Staff action: send a job to the property's owner for approval. Generates a
+// login-free token, sets the job to Waiting on Approval, and emails the owner a
+// link to /approve/<token>. If email isn't configured, still succeeds and
+// returns the link so staff can share it manually.
+export async function requestOwnerApproval(jobId: string, note: string): Promise<OwnerApprovalResult> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user || !companyId) return { error: 'Not signed in.' }
+
+  const { data: job, error: jobErr } = await supabase
+    .from('maintenance_jobs')
+    .select('id, title, estimated_cost, property:properties(unit_number, owner:owners!owner_id(first_name, last_name, email))')
+    .eq('id', jobId)
+    .eq('company_id', companyId)
+    .maybeSingle()
+
+  if (jobErr || !job) return { error: 'Could not load this job.' }
+
+  const property = job.property as unknown as
+    | { unit_number: string | null; owner: { first_name: string | null; last_name: string | null; email: string | null } | null }
+    | null
+  const owner = property?.owner ?? null
+  if (!owner) return { error: 'This property has no owner on file. Add an owner first.' }
+  const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ')
+  if (!owner.email) return { error: `No email on file for owner ${ownerName || '(unnamed)'}. Add one to send for approval.` }
+
+  const token = randomBytes(18).toString('base64url')
+
+  const { error: updErr } = await supabase
+    .from('maintenance_jobs')
+    .update({
+      owner_approval_token: token,
+      owner_approval_status: 'pending',
+      owner_approval_sent_at: new Date().toISOString(),
+      owner_approval_decided_at: null,
+      owner_approval_note: note?.trim() || null,
+      status: 'waiting_approval',
+      updated_by: user.id,
+    })
+    .eq('id', jobId)
+    .eq('company_id', companyId)
+
+  if (updErr) return { error: 'Could not update the job — you may not have permission.' }
+
+  const link = `${await appBaseUrl()}/approve/${token}`
+  const title = job.title as string
+  const unit = property?.unit_number
+  const cost = job.estimated_cost as number | null
+
+  const html = `
+    <div style="font-family:system-ui,Arial,sans-serif;max-width:520px;color:#0f172a">
+      <h2>Maintenance approval requested</h2>
+      <p>Hi ${ownerName || 'there'},</p>
+      <p>Your managing agent is requesting approval for a maintenance job${unit ? ` at <strong>Unit ${unit}</strong>` : ''}:</p>
+      <p style="font-size:15px"><strong>${title}</strong></p>
+      ${cost != null ? `<p>Estimated cost: <strong>$${cost.toFixed(2)}</strong></p>` : ''}
+      ${note?.trim() ? `<p style="color:#475569">“${note.trim()}”</p>` : ''}
+      <p style="margin:24px 0">
+        <a href="${link}" style="background:#16a34a;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Review &amp; respond</a>
+      </p>
+      <p style="color:#64748b;font-size:12px">Or paste this into your browser:<br>${link}</p>
+    </div>`
+
+  const emailResult = await sendEmail({ to: owner.email, subject: `Approval needed: ${title}`, html })
+
+  await supabase.from('audit_logs').insert({
+    company_id: companyId,
+    user_id: user.id,
+    action: 'status_changed',
+    entity_type: 'maintenance_job',
+    entity_id: jobId,
+    description: `Sent to owner for approval${emailResult.sent ? ` (emailed ${owner.email})` : ' (email not configured — link shared manually)'}`,
+  })
+
+  revalidatePath(`/maintenance/${jobId}`)
+  revalidatePath('/maintenance')
+  return { error: null, ok: true, link, emailed: emailResult.sent, ownerEmail: owner.email }
+}
+
+// Staff fallback: record the owner's decision when they reply offline (phone/email).
+export async function recordOwnerDecision(
+  jobId: string,
+  decision: 'approved' | 'declined',
+  note: string,
+): Promise<ActionState> {
+  const { supabase, user, companyId } = await currentContext()
+  if (!user || !companyId) return { error: 'Not signed in.' }
+  if (decision !== 'approved' && decision !== 'declined') return { error: 'Invalid decision.' }
+
+  const { error } = await supabase
+    .from('maintenance_jobs')
+    .update({
+      owner_approval_status: decision,
+      owner_approval_decided_at: new Date().toISOString(),
+      owner_approval_note: note?.trim() || null,
+      status: decision === 'approved' ? 'new' : 'cancelled',
+      updated_by: user.id,
+    })
+    .eq('id', jobId)
+    .eq('company_id', companyId)
+
+  if (error) return { error: 'Could not record the decision.' }
+
+  await supabase.from('audit_logs').insert({
+    company_id: companyId,
+    user_id: user.id,
+    action: 'status_changed',
+    entity_type: 'maintenance_job',
+    entity_id: jobId,
+    description: `Owner ${decision} (recorded manually)`,
+  })
+
+  revalidatePath(`/maintenance/${jobId}`)
+  revalidatePath('/maintenance')
+  return { error: null, ok: true }
 }

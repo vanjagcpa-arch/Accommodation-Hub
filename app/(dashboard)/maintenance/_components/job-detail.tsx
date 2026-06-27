@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import {
   ChevronLeft, MapPin, User, Calendar, AlertTriangle, Send, Database,
-  CheckCircle2, Circle, Clock, DollarSign, Image as ImageIcon,
+  CheckCircle2, Circle, Clock, DollarSign, Image as ImageIcon, Copy, Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MaintenancePriorityBadge, MaintenanceStatusBadge, Badge } from '@/components/ui/badge'
 import { STATUS_ORDER, STATUS_META, isOverdue } from '@/lib/maintenance/constants'
-import { updateJobStatus, addJobComment, toggleChecklistItem } from '@/lib/maintenance/actions'
+import { updateJobStatus, addJobComment, toggleChecklistItem, requestOwnerApproval, recordOwnerDecision } from '@/lib/maintenance/actions'
 import type {
   MaintenanceJob, MaintenanceComment, MaintenanceStatusHistory,
   MaintenanceChecklistItem, MaintenanceCost, MaintenanceStatus,
@@ -167,6 +167,8 @@ export function JobDetail({ job, comments, history, checklist, costs, error }: P
           </Button>
         </div>
       </div>
+
+      <OwnerApprovalPanel job={job} />
 
       {/* Tabs */}
       <div className="border-b border-line">
@@ -361,6 +363,122 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
     <div className="px-4 py-3">
       <p className="text-[11px] text-ink-subtle mb-0.5">{label}</p>
       <div className="text-[13px] font-medium text-ink">{children}</div>
+    </div>
+  )
+}
+
+function OwnerApprovalPanel({ job }: { job: MaintenanceJob }) {
+  const router = useRouter()
+  const [pending, start] = useTransition()
+  const [note, setNote] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [link, setLink] = useState<string | null>(null)
+  const [emailed, setEmailed] = useState<boolean | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const owner = job.property?.owner ?? null
+  const ownerName = owner ? ([owner.first_name, owner.last_name].filter(Boolean).join(' ') || owner.company_name || 'the owner') : null
+  const status = job.owner_approval_status
+  const tokenLink = job.owner_approval_token && typeof window !== 'undefined'
+    ? `${window.location.origin}/approve/${job.owner_approval_token}`
+    : null
+
+  function copy(value: string) {
+    navigator.clipboard?.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  function send() {
+    setError(null)
+    start(async () => {
+      const r = await requestOwnerApproval(job.id, note)
+      if (r.error) { setError(r.error); return }
+      setLink(r.link ?? null); setEmailed(r.emailed ?? false); setNote(''); router.refresh()
+    })
+  }
+  function record(decision: 'approved' | 'declined') {
+    setError(null)
+    start(async () => {
+      const r = await recordOwnerDecision(job.id, decision, note)
+      if (r.error) { setError(r.error); return }
+      setNote(''); router.refresh()
+    })
+  }
+
+  // Decided
+  if (status === 'approved' || status === 'declined') {
+    return (
+      <div className="rounded-xl border border-line bg-surface p-5">
+        <h3 className="text-[13px] font-semibold text-ink mb-2">Owner approval</h3>
+        <div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] ${status === 'approved' ? 'border-pos/30 bg-pos/5 text-pos' : 'border-neg/30 bg-neg/5 text-neg'}`}>
+          {status === 'approved' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+          Owner {status}{job.owner_approval_decided_at ? ` on ${fmtDate(job.owner_approval_decided_at)}` : ''}
+        </div>
+        {job.owner_approval_note && <p className="mt-2 text-[12px] text-ink-muted">“{job.owner_approval_note}”</p>}
+      </div>
+    )
+  }
+
+  // Pending
+  if (status === 'pending') {
+    return (
+      <div className="rounded-xl border border-line bg-surface p-5 space-y-3">
+        <h3 className="text-[13px] font-semibold text-ink">Owner approval</h3>
+        <p className="text-[13px] text-ink-muted">
+          Awaiting owner{ownerName ? ` (${ownerName})` : ''}{job.owner_approval_sent_at ? ` — sent ${fmtDate(job.owner_approval_sent_at)}` : ''}.
+        </p>
+        {tokenLink && (
+          <div className="flex items-center gap-2">
+            <code className="truncate rounded bg-surface-muted px-2 py-1 text-[12px] text-ink max-w-[320px]">{tokenLink}</code>
+            <button onClick={() => copy(tokenLink)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-[12px] text-ink hover:bg-surface-muted">
+              {copied ? <Check className="h-3.5 w-3.5 text-pos" /> : <Copy className="h-3.5 w-3.5" />}{copied ? 'Copied' : 'Copy link'}
+            </button>
+          </div>
+        )}
+        <div className="border-t border-line pt-3">
+          <p className="text-[12px] text-ink-faint mb-2">Owner replied another way? Record it here:</p>
+          {error && <p className="text-[12px] text-neg mb-2">{error}</p>}
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => record('approved')} loading={pending}>Mark approved</Button>
+            <Button size="sm" variant="outline" onClick={() => record('declined')} loading={pending}>Mark declined</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Not yet sent
+  return (
+    <div className="rounded-xl border border-line bg-surface p-5 space-y-3">
+      <h3 className="text-[13px] font-semibold text-ink">Owner approval</h3>
+      {owner ? (
+        <p className="text-[13px] text-ink-muted">
+          Send this job to <strong className="text-ink">{ownerName}</strong>{owner.email ? ` (${owner.email})` : ''} for approval. They&apos;ll get an email with a link to approve or decline.
+        </p>
+      ) : (
+        <p className="text-[13px] text-ink-muted">This property has no owner on file — add one to request approval.</p>
+      )}
+      {link && (
+        <div className="rounded-lg border border-pos/30 bg-pos/5 px-3 py-2 text-[12px] text-ink">
+          {emailed ? 'Emailed to the owner.' : 'Email isn’t configured — share this link with the owner:'}
+          <div className="mt-1 flex items-center gap-2">
+            <code className="truncate rounded bg-surface-muted px-2 py-1 max-w-[320px]">{link}</code>
+            <button onClick={() => copy(link)} className="inline-flex items-center gap-1 rounded border border-line px-2 py-0.5">
+              {copied ? <Check className="h-3 w-3 text-pos" /> : <Copy className="h-3 w-3" />}{copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      )}
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Optional message to the owner…"
+        className="h-9 w-full rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-ring/50"
+      />
+      {error && <p className="text-[12px] text-neg">{error}</p>}
+      <Button onClick={send} loading={pending} disabled={!owner}>
+        <Send className="h-4 w-4" />Send to owner for approval
+      </Button>
     </div>
   )
 }
