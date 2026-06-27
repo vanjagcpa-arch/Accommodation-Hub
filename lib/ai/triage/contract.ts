@@ -68,10 +68,15 @@ export interface IntakeMessage {
 }
 
 // ── OpenAI JSON schema (for response_format.json_schema) ─────────────────────
-// Hand-crafted from TriageTurnSchema so OpenAI enforces it server-side.
+// Guides the model's output shape. NOT strict: OpenAI's strict structured
+// outputs require every property to be listed in `required` (and forbid
+// optional fields like question/self_help/job/note), which this turn schema
+// intentionally has. We validate the result with TriageTurnSchema (zod) and
+// retry via requestFallbackTurn on a parse miss, so strict enforcement isn't
+// needed — and leaving it on makes OpenAI reject the request with a 400.
 export const TRIAGE_TURN_JSON_SCHEMA = {
   name: 'triage_turn',
-  strict: true,
+  strict: false,
   schema: {
     type: 'object',
     required: ['extracted', 'category', 'confidence', 'action'],
